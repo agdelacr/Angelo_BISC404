@@ -1,0 +1,118 @@
+# Introduction to ChatGPT for R Programming
+
+```{=html}
+<div style="text-align:center;">
+  <img src="images/clipboard-1268227161.png" width="184" />
+  <img src="images/clipboard-3635929608.png" width="192" />
+</div>
+```
+
+```         
+```
+
+In this lab, we explore how to use ChatGPT effectively and responsibly for programming in R.
+
+While ChatGPT can be a powerful tool for solving specific programming challenges, it can also easily be misused if not properly understood.
+
+ChatGPT often **confidently** offers incorrect solutions. Always double-check the work, and remember that critical thinking is more crucial than ever in the era of LLMs.
+
+## What is ChatGPT?
+
+GPT-4.0o is an example of a Large Language Model (LLM), which is a type of deep learning model that is designed to interpret and generate human language. This is the underlying models of the free and pro versions of ChatGPT as of January 2025. LLMs are trained using vast amounts of text data. The training process involves using machine learning frameworks such as PyTorch or TensorFlow to train neural networks with layers that simulate a form of artificial "neurons" and "synapses," where weights are adjusted through the process of training. The outcome of this training is file, which contains a complex array of weights that capture patterns in data. These weights can be thought of as likelihoods. To understand the scale, the GPT-5 model contains 175 billion parameters but was trained on only estimated 570GB of compressed data because training these types of models is extremely computationally expensive.
+
+These massive, non-human readable files containing the weights of the neural network are what we refer to as "models" and may look something like this if opened up in a normal text file:
+
+```         
+
+�i�]��g���a�<�f�+U�k�:�ڷ�2���A��ܹ������n��7�b�>�O��W�
+��N�]��ɻ��Z��Ś�M8�ټ�X��v�b��^�=�r��x�d�K�G�ۏ�0�|�����
+��ؽ��U�z�����q�֔�:�r�:�%��ˬ�E�,�����+�'�����E��j�i�
+```
+
+Large Language Models use these models to simply **predict the next item** in a sequence. Imagine a text that begins with "Paris is the capital of," the model could predict that the next word is likely to be "France" based on the training it has received. It does this by calculating the probabilities of various words being the next sequence and selecting the most likely option. As an oversimplified example, if we have the letter "A" with the weight of 0.74 that the next letter will be B and 0.36 weight that the next letter will be C, the model would select B. This is a simplification, for example notice how ChatGPT writes in chunks rather than individual letters or words as it generates its output, but it captures the essence of how these models operate—predicting text based on patterns learned from a dataset. So the LLM does not "understand" the text it is generating, it is simply predicting the next most likely sequence of text **based on** the training it has received, which is crucial to ***always*** keep in mind when using a model like ChatGPT.
+
+How could this lead to biases in outputs?
+
+For more info on how Neural Networks like LLMs work, check out this fantastic YouTube video: [The moment we stopped understanding AI \[AlexNet\]](https://www.youtube.com/watch?v=UZDiGooFs54)
+
+## ChatGPT for Programming: Responsible and Irresponsible Uses
+
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| Responsible Uses                                                                                                   | Irresponsible Uses                                                                                                 |
++====================================================================================================================+====================================================================================================================+
+| \- Solve discrete, well-defined programming issues                                                                 | \- Writing large amounts of code or text without oversight/editing. Expecting error-free or optimal code\          |
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| \- Generate conceptual examples for guidance or as a starting place                                                | \- Trusting code generated does what ChatGPT says it does without testing it thoroughly                            |
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| \- Explain coding concepts and functions                                                                           | \- Substituting comprehensive understanding of a language which is necessary to critically analyze ChatGPT outputs |
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| \- Offer debugging strategies                                                                                      | \- Trusting ChatGPT for up-to-date information without considering the age or source of the training data          |
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+| \- Identifying or describing how to read a a plot. The free version of other LLMs, like Gemini, allow image upload | \- Making assumptions about what ChatGPT knows; LLMs lack "common sense" and explicit context must be provided     |
++--------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
+
+ChatGPT can be a powerful tool to enhance your work but do not rely on it. Instead use it to fill in small gaps to reach your goal:
+
+![](images/Screenshot%202024-08-20%20221052%20(1).jpg){width="628"}
+
+Trying to use ChatGPT to fill in large gaps in knowledge is a dangerous trap. If you don't understand the intermediate concepts or steps, you cannot confidently assess the accuracy of ChatGPT's outputs. You should never publish or use code generated by ChatGPT unless you can test that the code actually works.
+
+![](images/Untitled%20drawing%20(1).png){width="631"} *Source: [A cautionary tale about ChatGPT for advanced developers](https://www.youtube.com/watch?v=6CGtwF_5kzY)*
+
+## Tips for Optimal Use of ChatGPT
+
+-   **Context Is Key**: Supply *detailed* context to enhance the accuracy of ChatGPT's responses. If you don't fully understand what you need and cannot explain it in great detail, ChatGPT will not understand either, but will make incorrect assumptions to fill in any blanks. You can always ask ChatGPT to provide the assumptions it used to generate a response to help try to identify them.
+-   **Avoid Negatives**: AI in general struggles with negatives. For example, "No wheat in the recipe" can often be misinterpreted as "... wheat in the recipe." A better option is to stick to positives, "Gluten-free recipe."
+-   **Divide and Conquer**: Break down complex issues into smaller, more manageable tasks. Pose sequential questions to guide ChatGPT through the problem-solving process.
+-   **Verify Solutions**: Cross-reference ChatGPT's solutions with trusted sources or work with ChatGPT to generate code you can use to verify solutions make sense.
+-   **Incorporate Debugging Into Your Code**: Use ChatGPT to incorporate debugging strategies into your code, such as printing intermediate results.
+-   **Incremental Testing**: Test changes incrementally to confirm their correctness.
+-   **Feedback Loop**: Remember, the free version of ChatGPT cannot run code, so you must provide specific feedback to steer ChatGPT in the right direction.
+-   **Provide Examples**: Even if you think it might be obvious, always provide examples of what you are looking for. A fantantsic approach to using ChatGPT for programming is to provide dummy input data and dummy results that look like what you would like to produce.
+-   **Consistent Threads**: Threads are an amazing and often overlooked tool to enhance ChatGPT. Maintaining a thread for a given topic can train that individual thread to best meet your needs.
+    -   ![](images/screenshot-chat.openai.com-2023.06.03-21_34_13.jpg){width="295"}
+-   **Avoid Leading Questions:** ChatGPT can very be easily coerced by leading questions. To get less biased results, avoid leading questions.
+
+My biggest tip: Imagine you are a manager and ChatGPT is your perpetually brand-new *employee.* They are an enthusiastic and very fast worker, but are often wrong, don't have any background knowledge in your field yet, and are extremely forgetful. Let them do the grunt work, but you need to be the one to always double-check their work. If ChatGPT is your brand-new employee, think of yourself as the editor-in-chief. Constantly figure out ways to check and double-check its work.
+
+### Ethical Considerations
+
+**Acknowledgment of AI Assistance**: Credit ChatGPT's contributions where appropriate. Do not misrepresent AI-generated content as solely human-created. For example: I used ChatGPT to help me create this lab!
+
+## Activity
+
+Practice using ChatGPT to troubleshoot the following R code. What do you find? What does this reveal about how ChatGPT should be used and why you need to be very cautious when using an LLM?
+
+```{r error=TRUE}
+
+rm(list=ls()) 
+
+library(ggplot2)
+library(dplyr)
+library(MASS)
+
+# Part 1: Create a data frame
+data <- data.frame(
+  Category = c("A", "B", "C", "D", "E"),
+  Value = c(5, 3, 15, 9, 12),
+  Exclude = c(TRUE, FALSE, TRUE, FALSE, TRUE)
+)
+
+# Part 2: Perform data transformation using dplyr's select function (Error introduced here)
+transformed_data <- data %>%
+  select(-Exclude) %>%
+  mutate(RelativeValue = Value / sum(Value))
+
+# Part 3: Create a ggplot
+plot <- ggplot(transformed_data, aes(x = Category, y = RelativeValue)) +
+  geom_col() +
+  labs(title = "Relative Values by Category")
+
+# Part 4: Print the plot
+print(plot)
+
+
+
+```
+
+# 
