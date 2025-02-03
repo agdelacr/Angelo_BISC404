@@ -1,0 +1,463 @@
+#### 0) Clear your environment
+
+```{r include=FALSE}
+
+rm(list=ls()) 
+
+```
+```{r}
+ls()
+character(0)
+```
+
+#### 1) Using the `require()` or `library()` function, load the packages `ggplot2`[@ggplot2], `dplyr`[@dplyr], and `ratdat`[@ratdat] which contains the dataset `complete`.
+
+```{r include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(ratdat)
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("ratdat")
+```
+```{r}
+library(ggplot2)
+library(dplyr)
+library(ratdat)
+data("complete", package = "ratdat")
+head(complete)
+```
+::: callout-caution
+## Warning: there is no package called 'ratdat'
+
+If you receive this warning, run `install.packages("ratdat")` before you run the line `require("ratdat")`
+:::
+
+#### 2) Inspect the dataset `complete` from the package `ratdat` using `head()`, `summary()`, and `View()`
+
+```{r}
+head(complete)
+```
+```{r}
+summary(complete)
+```
+```{r}
+View(complete)
+```
+
+#### 3a) Based on this inspection, describe the dataset:
+
+```       
+The `complete` dataset contains 35,549 entries and 13 variables, recording ecological and biodiversity data from 1977 to 2002. It includes information on the date (`month`, `day`, `year`), the location of observations (`plot_id`), and various species traits. Key columns also include `species_id`, `genus`, `species`, and `taxa`, which classify the observed organisms, and the dataset also records biological traits such as `sex`, `hindfoot_length` (2–70 mm, with some missing values), and `weight` (4–280 g, with missing values). In addition, the dataset also captures the type of environment in which the species were observed (`plot_type`), and while it provides a detailed foundation for analyzing biodiversity, missing values in critical columns like `hindfoot_length`, `weight`, and `sex` may need to be addressed for thorough analyses.
+```
+Here is how we can remove the `NA` values from the hindfoot length column using `dplyr` to make this assignment simpler:
+
+```{r}
+# Clean data by removing NAs from dataset
+complete <- complete %>%
+  filter(!is.na(hindfoot_length))
+```
+```{r}
+nrow(complete)
+```
+
+
+#### 3b) Refer to the in-class lab and do not be afraid to play with the code. Why did we use `filter()` to accomplish this? Why did we not use `select()`?
+
+```         
+We used filter() to accomplish this task because filter() is designed to subset rows based on specific conditions. In this case, the condition was to keep only rows where hindfoot_length is not missing (!is.na(hindfoot_length)) to ensure that the dataset includes only observations with valid values for hindfoot_length, which is important for analyses that require complete data. On the other hand, select() is used to subset columns, not rows. So, if we had used select(), it would not have removed rows with missing values but instead allowed us to extract or retain specific columns from the dataset. Our goal was to clean the dataset by removing rows with missing hindfoot_length values, and as such, filter() was the appropriate choice.
+```
+
+#### 4) Using `dplyr`, create a new dataframe named `df` consisting of only the columns `genus`, `species`, and `hindfoot_length` from the `complete` dataframe from the package `ratdat`. *Hint: how do we select certain columns using `dplyr`?*
+
+```{r}
+df <- complete %>%
+  select(genus, species, hindfoot_length)
+head(df)      # Preview the first 6 rows
+ncol(df)      # Verify that there are only 3 columns
+names(df)     # Check the column names
+```
+
+
+#### 5) Create a new column named "genus_species" that combines genus and species names into a single cell with an underscore as a separator using the `paste()` function (i.e. if *Homo* is in the genus column, and *sapiens* is in the species column, the new "genus_species" column would have *Homo_sapiens*). Refer to the `paste()` help file if needed. *Hint: how do we create new columns using `dplyr`?*
+
+```{r}
+df <- df %>%
+  mutate(genus_species = paste(genus, species, sep = "_"))
+head(df)  # Preview the dataframe with the new column
+```
+
+Before contiuning with our data, first let's learn about the `group_by` function.
+
+::: callout-caution
+## group_by() and ungroup()
+
+`dplyr`[@dplyr]'s `group_by()` function is a powerful and convenient way to separate data into groups and perform operations on each group. However, it is important to remember to **always** use `ungroup()` after you are done with your group operations. This is because `group_by()` will continue to affect your data until you use `ungroup()`. This is even more dangerous because visually you will not see any difference in your data after using `group_by()`.
+
+Here is a dummy dataset for us to play with:
+
+```{r}
+# Generating some dummy data
+df_dummy <- data.frame(
+  group = c(1, 2, 3, 4, 5, 6),
+  location = c("A", "A", "B", "B", "C", "C"),
+  number = c(5, 3, 4, 6, 7, 2),
+  distance_traveled = c(1, 1, 5, 6, 3, 2)
+)
+```
+
+#### 6a) Inspect and describe the dataset
+
+```{r}
+head(df)       # Preview the first few rows
+summary(df)    # Get a statistical summary
+str(df)        # Check the structure of the dataframe
+```
+
+```         
+The df dataset contains 31,438 rows and 3 columns: genus, species, and hindfoot_length. The genus and species columns store character data representing the taxonomic classifications of organisms, while hindfoot_length is a numeric column that measures the length of the hindfoot in millimeters, ranging from 2 to 70 mm with a mean of 29.29 mm and a median of 32 mm. This dataset is a cleaned version of the original, retaining only rows with non-missing hindfoot_length values for analysis.
+```
+
+Our goal is to find total distance traveled in each location and the total count of individuals across groups
+
+First let's group by location.
+
+```{r}
+# Grouping by location
+df_grouped1 <- df_dummy %>%
+  group_by(location)
+```
+
+#### 6a) Inspect the grouped dataset and describe any changes you see anywhere throughout the Rstudio interface
+
+```{r}
+df_grouped <- df %>%
+  group_by(genus)
+df_grouped        # Print the grouped dataframe
+class(df_grouped) # Check the class of the dataframe
+```
+
+```         
+The df_grouped dataset looks similar to the original dataset (df) but now includes grouping information. In the Environment pane, the dataset is identified as a "grouped tibble" (grouped_df) and the grouping variable is noted as genus with 10 unique groups. This grouping allows operations such as summaries to be applied separately to each genus without affecting the overall dataset. In the console, the data structure now indicates that it retains 31,438 rows and 3 columns with additional metadata showing the grouping structure. So, while the dataset visually appears the same, any operations on df_grouped will now respect the grouping by genus.
+
+Besides the small "Groups: ..." at the top of the output, the data does not appear any different after grouping here.
+```
+
+You are beginning to see why using `group_by()` without `ungroup()` can be dangerous.
+
+Now try to meet the goal of finding the distance traveled in each location by creating the column "group_distance" and using the `sum()` function
+
+```{r}
+df_dummy <- df_dummy %>%
+  group_by(location) %>%
+  mutate(group_distance = sum(distance_traveled)) %>%
+  ungroup()
+```
+
+#### 6b) Inspect and describe the changes. Is that what we were aiming for? Why or why did it not work?
+
+```{r}
+df <- df %>%
+  group_by(genus) %>%
+  mutate(group_hindfoot_sum = sum(hindfoot_length)) %>%
+  ungroup()
+head(df)
+```
+
+```
+The changes to the df dataset were successful. A new column, group_hindfoot_sum, has been added which displays the total sum of hindfoot_length for each genus. For example, the genus Neotoma has a total hindfoot_length of 34,684, while the Dipodomys has a total of 568,106. The total is consistent across all rows within the same genus because of the grouping operation. This is exactly what we were aiming for, as the group_hindfoot_sum column accurately reflects the grouped sums for each genus. The operation worked correctly because the dataset was grouped by genus, and the sum() function calculated the totals within each group. There are no visible issues. 
+```
+
+#### 6c) Now try to meet the goal of finding the total number of individuals across groups by adding the column "sum".
+
+```{r}
+df <- df %>%
+  group_by(genus) %>%
+  mutate(sum = n()) %>%
+  ungroup()
+head(df)
+```
+
+#### 6d) Inspect and describe the changes. Is that what we were aiming for? Why or why did it not work?
+
+```{r}
+summary(df)
+df %>%
+  select(genus, sum) %>%
+  distinct()
+```
+
+```   
+The changes to the df dataset were successful. The new column sum accurately represents the total number of individuals for each genus. For instance, the genus Dipodomys has a total of 14,991 individuals, while Neotoma has 1,074 individuals, and Ammospermophilus has just 2 individuals. Each genus is associated with its respective count, and the results align with our goal of determining the total number of individuals across groups. This worked as intended because the dataset was grouped by genus, and the n() function correctly counted the number of rows (individuals) within each group. The ungroup() function ensured no unintended side effects in subsequent operations. Everything is as expected
+```
+
+We have 3 sum values instead of the desired overall sum!
+
+This is because we did not `ungroup()` like we *always* should. So even thought there is no visual difference after using `group_by()`, not using `ungroup()` affects your code downstream.
+
+Now try repeating the above process in one pipe (creating new dataframe `df_grouped2` by grouping `df_dummy` by location, creating the group_distance column, ungrouping by calling the function `ungroup()` with no arguments, then creating the sum column).
+
+```{r}
+df_grouped2 <- df_dummy %>%
+  group_by(location) %>%
+  mutate(group_distance = sum(distance_traveled)) %>%
+  ungroup() %>%
+  mutate(sum = n())
+head(df_grouped2)
+```
+:::
+
+Now that you have learned about `group_by()` and the importance of `ungroup()`, let's return to our `df` dataset.
+
+#### 7) In our dataframe `df`, create a new column called "mean_hindfoot" that takes the average hindfoot length grouped by species ("genus_species")
+
+```{r}
+colnames(df)
+```
+```{r}
+df <- df %>%
+  mutate(genus_species = paste(genus, species, sep = "_"))
+df <- df %>%
+  group_by(genus_species) %>%
+  mutate(mean_hindfoot = mean(hindfoot_length, na.rm = TRUE)) %>%
+  ungroup()
+head(df)
+```
+
+#### 8) Similarly, calculate the standard deviation of hindfoot lengths by species in the new column `sd_hindfoot`.
+
+```{r}
+df <- df %>%
+  group_by(genus_species) %>%
+  mutate(sd_hindfoot = sd(hindfoot_length, na.rm = TRUE)) %>%
+  ungroup()
+head(df)
+```
+
+Let's take the species *Dipodomys merriami* (Rodentia: Heteromyidae) because it has the highest n in our current data frame.
+
+#### 9) Using `ggplot2` in a single pipe, plot a histogram of *D. merriami* hindfoot lengths with labels.
+
+```{r}
+library(ggplot2)
+
+df %>%
+  filter(genus_species == "Dipodomys_merriami") %>%
+  ggplot(aes(x = hindfoot_length)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(
+    title = "Hindfoot Lengths of Dipodomys merriami",
+    x = "Hindfoot Length (mm)",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+# Probability Distributions and Randomization
+
+Base R has a variety of probability distributions available. Many of them are available in four functions for each distribution by default: random, density, probability, and quantile.
+
+For example, for the normal distribution, the `rnorm()`, `dnorm()`, `pnorm()`, and `qnorm()` functions are available following the `?Normal` help file
+
+\
+![](images/image-801535382.png){width="500"}
+
+::: callout-caution
+## Normal Distribution Defaults
+
+Note that by default in R, normal distribution means are set to 0 and standard deviations are set to 1. These values can be changed to fit your needs.
+:::
+
+## `rnorm()`
+
+Let's draw 300,000 random numbers from a normal distribution.
+
+```{r}
+# Randomly draw a number from a normal distribution 300,000 times
+normal_distribution <- rnorm(300000)
+
+normal_distribution_df <- data.frame(value = normal_distribution) # Convert vector to dataframe
+normal_distribution_df$index <- seq_along(normal_distribution_df$value) # Add a numbered column
+
+# Calculate mean and standard deviation
+mean <- mean(normal_distribution_df$value)
+sd <- sd(normal_distribution_df$value)
+```
+
+#### 10) Inspect the data using `summary()` and describe it
+
+```{r}
+summary(normal_distribution_df)
+```
+
+```
+The normal_distribution_df dataset contains 300,000 randomly generated values from a standard normal distribution. The value column has a mean of approximately -0.00071 and a median of 0.00041, both of which are close to the expected mean of 0, indicating symmetry. The range spans from -4.889 to 4.504, which aligns with the typical spread of a normal distribution, where most values fall within 3 standard deviations of the mean. Respectively, the 1st and 3rd quartiles are nearly symmetric around 0, with values of -0.675 and 0.672. The index column is sequential, ranging from 1 to 300,000, with no variability. Overall, the dataset reflects the expected properties of a standard normal distribution.
+```
+
+#### 11) Now plot the dataset using a `geom_point()` scatter plot
+
+```{r}
+normal_distribution_df %>%
+  ggplot(aes(x = index, y = value)) +
+  geom_point(alpha = 0.1, color = "blue") +
+  labs(
+    title = "Scatter Plot of Randomly Generated Normal Distribution",
+    x = "Index",
+    y = "Value"
+  ) +
+  theme_minimal()
+
+normal_distribution_df %>%
+  sample_n(10000) %>%
+  ggplot(aes(x = index, y = value)) +
+  geom_point(alpha = 0.2, color = "blue") +
+  labs(
+    title = "Scatter Plot of Sampled Normal Distribution",
+    x = "Index",
+    y = "Value"
+  ) +
+  theme_minimal()
+
+ggplot(normal_distribution_df, aes(x = value)) +
+  geom_density(fill = "blue", alpha = 0.4) +
+  labs(
+    title = "Density Plot of Normal Distribution",
+    x = "Value",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+#### 12) What are your initial impressions of the shape and distribution of this dataset?
+
+```
+My initial impressions of this dataset are that it exhibits a shape and distribution consistent with the characteristics of a standard normal distribution. The values are symmetrically distributed around a mean of approximately 0, with a noticeable clustering of points near the center of the y-axis. The density of points decreases as the values move away from the mean, forming the "bell-shaped" pattern typical of a normal distribution. Most of the data falls within three standard deviations of the mean, as indicated by the boundaries of the scatter plot, with only a few points appearing as outliers in the tails. This reflects the expected spread and rarity of extreme values in a normal distribution, suggesting the dataset is well-behaved and aligns with its theoretical properties.
+```
+
+Plot this distribution as a histogram
+
+::: callout-tip
+***Hint**:* You will need to include this line in your `ggplot` pipe:\*
+
+`geom_histogram(bins = 1000) + # This is the number of rectangular bars in our histogram`
+:::
+
+```{r}
+normal_distribution_df %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 1000, fill = "blue", color = "black") +
+  labs(
+    title = "Histogram of Randomly Generated Normal Distribution",
+    x = "Value",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+#### 13) What are your impressions of the shape and distribution of this dataset now that it is presented as a histogram? If your impression has changed, how is that possible?
+
+```
+My impressions of the shape and distribution of this dataset remain consistent with those observed earlier. The histogram clearly reinforces that the data follows a normal distribution, exhibiting a symmetric, bell-shaped curve centered around a mean of 0. The majority of the data points fall within the range of approximately -3 to 3, with the frequency decreasing as the values deviate further from the mean, which is characteristic of a normal distribution. If there were any changes in impression, it would stem from the clarity provided by the histogram compared to the scatter plot. The scatter plot made it harder to discern the overall shape due to overplotting and density effects, whereas the histogram provides a much clearer visualization of the data's distribution.
+```
+
+## `dnorm()`
+
+What is the probability that a value randomly drawn from this dataset is equal to 2? We can estimate this with the `dorm()` function:
+
+```{r}
+dnorm(2, mean = mean, sd = sd)
+```
+
+</details>
+
+#### 13b) Gut check: look at the plot, does this number make sense? Why or why not?
+
+```
+Yes, the number 0.05397 makes sense when compared to the histogram of the dataset. In the histogram, values near 2 fall on the tail of the bell-shaped curve, which aligns with the expected properties of a normal distribution, and while the height (density) is lower compared to the peak around the mean of 0, it is not extremely low because 2 is only two standard deviations away from the mean, where values are still relatively likely to occur. The moderate density value reflects this likelihood, showing that values close to 2 are less frequent but still part of the normal distribution's regular spread. This is consistent with the histogram, where the bar at 2 is shorter than those near the mean but still present.
+```
+
+Now let's return to our `df` dataset
+
+### 14) Look back at the histogram you produced earlier for *D. merriami* hindfoot length, **visually** what do you think would be a decent estimate of the mean? What about the mode?
+
+*Hint: you can use what we just learned about bin sizes to "zoom" into the data*
+
+```{r}
+df %>%
+  filter(genus_species == "Dipodomys_merriami") %>%
+  ggplot(aes(x = hindfoot_length)) +
+  geom_histogram(bins = 50, fill = "blue", color = "black") +
+  labs(
+    title = "Histogram of D. merriami Hindfoot Length (Zoomed In)",
+    x = "Hindfoot Length (mm)",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+``` 
+Based on the histogram for D. merriami hindfoot length, a visually reasonable estimate for the mean would be approximately 35-36 mm, as this is where the center of the data appears to be located. The mode, or the most frequent value, also seems to fall within this range, as indicated by the tallest bar in the histogram. The zoomed-in visualization also provides a clearer view of the distribution, thus highlighting that most of the data is concentrated around these central values, which aligns with the expected characteristics of a normal distribution. 
+```
+
+#### 15a) Calculate the probability that a value randomly drawn from our *D. merriami* hindfoot length is equal to your visual estimate of the **mean**.
+
+::: callout-tip
+## *Tip: Don't forget to include the mean and standard deviation calculated earlier in `dnorm()`.*
+:::
+
+```{r}
+
+# Extract mean and sd for hindfoot length
+mean <- df %>%
+  filter(genus_species == "Dipodomys_merriami") %>%
+  summarize(mean_hindfoot = mean(mean_hindfoot)) %>% # Reduce to a single value
+  pull(mean_hindfoot) # Extract as a vector
+
+sd <- df %>%
+  filter(genus_species == "Dipodomys_merriami") %>%
+  summarize(sd_hindfoot = mean(sd_hindfoot)) %>% # Reduce to a single value
+  pull(sd_hindfoot) # Extract as a vector
+
+```
+
+```{r}
+dnorm(35.5, mean = mean, sd = sd)
+```
+
+#### 15b) From these results do your visual estimates seem accurate? Why or why not do you think that is?
+
+```         
+Yes, the results support that my visual estimates are accurate. The calculated probability density for the visual estimate of the mean (approximately 35.5 mm) is relatively high at 0.258051, which aligns with the fact that the mean represents the central tendency of the data. This matches what was observed in the histogram, where the highest frequency of values clustered around 35-36 mm. 
+```
+
+#### 16a) Calculate the probability that a value randomly drawn from our *D. merriami* hindfoot length is equal to your visual estimate of the **mode**.
+
+```{r}
+mode <- df %>%
+  filter(genus_species == "Dipodomys_merriami") %>%
+  count(hindfoot_length) %>%
+  arrange(desc(n)) %>%
+  slice(1) %>%
+  pull(hindfoot_length)
+
+dnorm(36, mean = 35.9823505816286, sd = 1.46434554086098)
+```
+
+#### 16b) From these results do your visual estimates seem accurate? Why or why not do you think that is?
+
+```{}
+Yes, the results support that my visual estimates are accurate. The calculated probability density for the mode, 36 mm, is 0.2724175, which is very close to the density calculated for the mean. This makes sense because, in a normal distribution, the mean and mode often overlap or are nearly identical, especially in symmetric datasets. The histogram also visually reinforces this, as the highest frequency of values is concentrated around 36 mm, which was identified as the mode. 
+```
+
+#### 17) Opinion: what was the most useful and least useful aspect of this lab assignment? Why is that the case for you?
+
+```{}
+The most useful aspect of this lab assignment was learning how to use `ggplot2` and `dplyr` to visualize and analyze data effectively, as these tools are practical for interpreting real-world datasets. The least useful aspect was working with simulated normal distributions, as it felt less connected to the biological context of *D. merriami*, however, it still provided a good foundation for understanding probability and distribution concepts.
+```
+
+# References
+
+#### 18) What outside sources did you use to help you complete this work (including books, forums, LLMs, etc.)? Describe how they were used:
+
+```{}
+Honestly, I relied on ChatGPT to understand R commands, fix errors, and interpret results for this lab. It helped me use `dplyr` for data manipulation, `ggplot2` for visualizations, and explained functions like `dnorm()`. It also guided me through answering questions and interpreting outputs effectively.
+```
