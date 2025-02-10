@@ -1,0 +1,321 @@
+# Exercise 0: Appropriately set-up your environment (clear environment, load packages, set working directory if needed, etc.)
+
+```{r setup, include=FALSE}
+rm(list=ls()) 
+ls()
+character(0)
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("vegan")
+library(vegan)
+library(ggplot2)
+library(dplyr)
+library(readr)
+```
+
+# Introduction
+
+In this lab, we will delve deeper into population dynamics, exploring both density-independent and density-dependent growth, as well as interspecific interactions. You will use R to simulate these ecological processes and interpret the results of your simulations.
+
+# Exercise 1:
+
+Using the `tribbles.rds` dataset provided, write an R script to plot the population size of tribbles over **5 days** using `ggplot2` for plotting and `dplyr` for data wrangling. Plot using the `geom_line()` function.
+
+::: callout-tip
+## \`.Rds\` and \`.Rda\` files in R
+
+`.rds` and `.rda` (or `.Rdata`) files are used to store data natively in R.
+
+The main advantage of `.rda` files is that they can contain a variety of data in a single file (objects, plots, functions, packages, etc.), however when loading a `.rda` file you run the risk of over-writing existing objects, plots, etc. with the same name.
+
+`.rds` files can only contain a single data structure. A benefit of this file type is that loading a `.rds` file will not overwrite data structures with the same name.
+:::
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+
+# Filter the data to include only the first 5 days
+tribbles_filtered <- tribbles %>%
+  filter(Days >= 1 & Days <= 5)  # Use the correct column name 'Days'
+
+# Plot the filtered data
+ggplot(tribbles_filtered, aes(x = Days, y = Count)) +  # Use 'Days' and 'Count'
+  geom_line() +
+  labs(
+    title = "Population Size of Tribbles Over 5 Days",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  xlim(c(1, 5))
+```
+
+### Q1: What general trend do you observe in the growth of the tribble population over this period? Does the population appear to be increasing, decreasing, or remaining stable?
+The general trend I observe in the growth of the tribble population over this period is that the population is increasing. The growth starts gradually in the first few days and accelerates significantly as time progresses, suggesting a rapid rise in population size, especially between days 3 and 5.
+
+### Q2: Does population growth apper to be discrete or continuous? Why?
+The population growth appears to be continuous because the plotted line smoothly connects the data points without distinct jumps or gaps between them, indicating that the population size changes steadily over time rather than occurring in distinct, separate increments.
+
+### Q3: Does population growth appear to be density-independent? Why or why not? Which equation, if any, do you think might best fit the trend?
+The population growth appears to be density-independent because it shows a rapid and unregulated increase in population size over time with no visible signs of slowing down or leveling off due to resource limitations or competition. This type of growth typically occurs when resources are abundant and external factors such as predation or competition do not constrain the population. Personally, I believe the equation that might best fit the trend is the exponential growth equation with N(t) representing the population size at time t, N0 as the initial population size, r as the growth rate, and e being the base of the natural logarith. This equation describes continuous, density-independent growth, which I believe aligns with the observed sharp increase in the tribble population.
+
+### Q4: If you think it may be a density-dependent trend, what would you estimate is the carrying capacity of the tribble population?
+In my opinion, I think the graph does not provide clear evidence of a density-dependent trend as the population growth shows no signs of slowing down or approaching a plateau within the observed 5-day period. Without indications of the population leveling off due to limited resources or competition, it is not possible to estimate a carrying capacity from this data alone. However, if future data showed the growth stabilizing, the carrying capacity could be estimated as the population size at which the growth levels off. But, based on the current trend, the tribble population appears to exhibit density-independent growth.
+
+### Q5: What are some biological, ecological, or stoichastic explanations that could explain the observed trend?
+Biologically, the rapid increase may result from a high reproductive rate and a short generation time which  allows multiple generations to contribute to population growth within the short observation period. This reproductive efficiency can then lead to exponential growth as seen in species with minimal constraints on reproduction. Ecologically, the population may be benefiting from abundant resources, such as food and space, which eliminate the effects of competition or scarcity. Then, the lack of natural predators or competitors further supports the unrestricted growth, while favorable environmental conditions, such as optimal temperatures or the absence of disease, provide an ideal setting for their reproduction. Stochastic factors, or random environmental events, may also play a role in the observed trend. For instance, the population could be benefiting from random favorable events, such as an unexpected influx of resources, or the absence of disturbances like natural disasters or resource depletion. 
+
+### Q6: What might be some expected consequences of this trend for the tribble population for the people living on the ship?
+Some expected consequences of this trend for the tribble population for the people living on the ship include resource depletion, overcrowding, and potential ecological disruption. As the tribble population grows exponentially, they are likely to consume a significant amount of the ship’s food and other essential supplies, which could lead to shortages for both the tribbles and the people aboard. Overcrowding could also become a serious issue, as the increasing number of tribbles may overwhelm living spaces and interfere with the daily activities of the crew and passengers. Additionally, the waste produced by such a large population could create sanitation problems and increase the risk of disease. If this growth trend continues unchecked, it could result in widespread ecological and logistical challenges for everyone on the ship.
+
+### **Step 2: Extract Growth Parameters**
+
+1.  Use **dplyr** to extract the **initial population size** ((N_0)) (*hint, remember `pull()` from the previous assignment*) and **growth rate** ((\lambda)).
+2.  We assume the per capita growth rate ((\lambda)) can be estimated as the ratio between consecutive population sizes. (*hint, this is a ratio between N0 and our current day, which is day 5*)
+
+```{r}
+library(dplyr)
+
+N0 <- tribbles %>%
+  filter(Days == 1) %>%
+  pull(Count)
+
+N5 <- tribbles %>%
+  filter(Days == 5) %>%
+  pull(Count)
+
+lambda <- N5 / N0  
+
+print(paste("Initial Population Size (N0):", N0))
+print(paste("Estimated Growth Rate (λ):", lambda))
+```
+
+Like we did in lab, use our equation for Q3 and `sapply()` to calculate when the tribble population size for each day until the population exceeds **111,537 tribbles** based on our current assumptions - If you think density-independent, you can use lambda directly in your equation. - If you think logistic growth, remember from lab how to convert lambda to r. We will assume K is equal to the largest population number within the given time span.
+
+```{r}
+max_population <- 111537  
+
+t_values <- 1:100
+population_sizes <- sapply(t_values, function(t) N0 * lambda^t)
+
+exceed_day <- min(t_values[population_sizes > max_population])
+
+print(paste("The population exceeds 111,537 tribbles on day:", exceed_day))
+```
+
+Plot your results like we did in lab:
+
+```{r}
+population_df <- data.frame(
+  Day = t_values,
+  Population = population_sizes
+)
+
+library(ggplot2)
+
+ggplot(population_df, aes(x = Day, y = Population)) +
+  geom_line() +
+  labs(
+    title = "Projected Tribble Population Growth",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  geom_hline(yintercept = max_population, linetype="dashed", color = "red") + 
+  annotate("text", x = exceed_day, y = max_population + 5000, 
+           label = paste("Exceeds 111,537 on day", exceed_day), color = "red")
+```
+```{r}
+population_df <- data.frame(
+  Day = t_values,
+  Population = population_sizes
+)
+
+library(ggplot2)
+
+ggplot(population_df, aes(x = Day, y = Population)) +
+  geom_line() +
+  labs(
+    title = "Projected Tribble Population Growth (Limited View)",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  geom_hline(yintercept = max_population, linetype = "dashed", color = "red") +  
+  annotate("text", x = 4, y = max_population + 50000, 
+           label = paste("Exceeds 111,537 on day", exceed_day), color = "red") +
+  scale_x_continuous(limits = c(1, 10)) +  
+  scale_y_log10()  
+```
+
+### Q: Does this model match with your plot of the real data above?
+Yes, this model matches the plot of the real data above. The exponential growth equation accurately captures the rapid and unbounded increase in population size observed in the plot of the real data. Both the model and the data show that the population size increases dramatically over time which is consistent with density-independent exponential growth.
+
+### Q: What does this plot imply about the population growth of tribbles on the ship?
+This plot implies that the tribble population on the ship is growing exponentially and without any apparent limitations. The rapid increase in population size suggests that resources, space, and other factors necessary for survival are abundant which allowss the population to expand unchecked. If this trend continues, the population could quickly become unsustainable, leading to severe resource depletion and potential ecological or logistical crises on the ship.
+
+------------------------------------------------------------------------
+
+# Exercise 2:
+
+Now plot over 8 days and answer the questions below based on this plot.
+
+```{r}
+tribbles_filtered_8days <- tribbles %>%
+  filter(Days >= 1 & Days <= 8)
+
+
+library(ggplot2)
+
+ggplot(tribbles_filtered_8days, aes(x = Days, y = Count)) +
+  geom_line() +
+  labs(
+    title = "Population Size of Tribbles Over 8 Days",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  xlim(c(1, 8))  # Limit x-axis to 8 days
+```
+
+### Q1: What general trend do you observe in the growth of the tribble population over this period? Does the population appear to be increasing, decreasing, or remaining stable?
+The general trend observed in the growth of the tribble population over this period is that the population is steadily increasing. The growth begins gradually during the initial days and accelerates significantly around day 4, continuing to rise sharply through day 8. This trend suggests that the tribble population is experiencing rapid, exponential growth with no signs of stabilization or decline during this time frame.
+
+### Q2: Does population growth apper to be discrete or continuous? Why?
+The population growth appears to be continuous because the graph shows a smooth and steady increase in population size over time with no abrupt jumps or gaps between days, indicating that the population is growing gradually and consistently rather than in distinct, separate increments.
+
+### Q3: Does population growth appear to be density-independent? Why or why not? Which equation, if any, do you think might best fit the trend?
+The population growth appears to be density-independent because the graph shows rapid and unregulated growth with no evidence of slowing or stabilizing due to resource limitations or competition. This suggests that external factors such as resource availability, space, or predation are not yet influencing the population size. Again, I believe the best equation that might best fit the trend is the exponential growth equation with N(t) representing the population size at time t, N0 as the initial population size, and lambda as the grow rate as it models continuous, unrestricted growth.
+
+### Q4: If you think it may be a density-dependent trend, what would you estimate is the carrying capacity of the tribble population?
+If the population growth is a density-dependent trend, the carrying capacity of the tribble population would likely be close to the highest population size observed within the dataset or slightly above it. Based on the graph, the population reaches around 4,000 tribbles by day 8, and if growth begins to slow after this point, the carrying capacity could reasonably be estimated at around 4,500 to 5,000 tribbles, assuming that resource limitations or competition start to impact the growth rate as the population approaches this size.
+
+### Q5: What are some biological, ecological, or stoichastic explanations that could explain the observed trend?
+Biologically, tribbles likely have a high reproductive rate and short generation time, allowing for rapid population increases. Ecologically, the population may be benefiting from abundant resources, such as food and space, and the absence of predators or competitors, enabling exponential growth without limitations. Favorable environmental conditions, such as ideal temperatures and minimal disease, may also support this trend. Stochastically, random favorable events, such as unexpected surges in resources or the absence of environmental disturbances, could further drive the rapid and continuous increase in population size. 
+
+### Q6: What might be some expected consequences of this trend for the tribble population for the people living on the ship?
+Some expected consequences of this trend for the tribble population for the people living on the ship include resource depletion, overcrowding, and significant ecological disruption. As the tribble population grows rapidly, they are likely to consume an increasing share of the ship's resources, such as food and space, which could lead to shortages for both the tribbles and the people aboard. Overcrowding could become a major issue, as the expanding population may interfere with living spaces and daily activities. Additionally, the accumulation of waste and the potential for unsanitary conditions could create health hazards. If the trend continues unchecked, these consequences could severely disrupt the ship's ecological balance and overall functionality.
+
+### **Step 2: Extract Growth Parameters**
+
+1.  Use **dplyr** to extract the **initial population size** ((N_0)) (*hint, remember `pull()` from the previous assignment*) and **growth rate** ((\lambda)).
+2.  We assume the per capita growth rate ((\lambda)) can be estimated as the ratio between consecutive population sizes. (*hint, this is a ratio between N0 and our current day, which is day 8*)
+
+```{r}
+N0 <- tribbles %>%
+  filter(Days == 1) %>%
+  pull(Count)
+
+N8 <- tribbles %>%
+  filter(Days == 8) %>%
+  pull(Count)
+
+lambda <- N8 / N0
+
+print(paste("Initial Population Size (N₀):", N0))
+print(paste("Estimated Growth Rate (λ):", lambda))
+```
+
+Like we did in lab, use our equation from Q3 and `sapply()` to calculate when the tribble population size for each day until the population exceeds **111,537 tribbles** based on our current assumptions. - If you think density-independent, you can use lambda directly in your equation. - If you think logistic growth, remember from lab how to convert lambda to r. We will assume K is equal to the largest population number within the given time span.
+
+```{r}
+max_population <- 111537  
+
+t_values <- 1:100
+population_sizes <- sapply(t_values, function(t) N0 * lambda^t)
+
+exceed_day <- min(t_values[population_sizes > max_population])
+
+print(paste("The population exceeds 111,537 tribbles on day:", exceed_day))
+```
+
+Plot your results like we did in lab:
+
+```{r}
+population_df <- data.frame(
+  Day = t_values,
+  Population = population_sizes
+)
+
+library(ggplot2)
+
+ggplot(population_df, aes(x = Day, y = Population)) +
+  geom_line() +
+  labs(
+    title = "Projected Tribble Population Growth",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  geom_hline(yintercept = max_population, linetype = "dashed", color = "red") +
+  annotate("text", x = exceed_day, y = max_population + 5000, 
+           label = paste("Exceeds 111,537 on day", exceed_day), color = "red")
+```
+```{r}
+ggplot(population_df, aes(x = Day, y = Population)) +
+  geom_line() +
+  labs(
+    title = "Projected Tribble Population Growth (Focused View)",
+    x = "Day",
+    y = "Population Size"
+  ) +
+  geom_hline(yintercept = max_population, linetype = "dashed", color = "red") +
+  annotate("text", x = exceed_day, y = max_population + 1000, 
+           label = paste("Exceeds 111,537 on day", exceed_day), color = "red") +
+  scale_x_continuous(limits = c(1, 10)) + 
+  scale_y_log10()
+```
+
+### Q: Does this model match with your plot of the real data above?
+Yes, this model matches the plot of the real data above. Both the model and the real data demonstrate rapid exponential growth in the tribble population over time. The model accurately reflects the population's unregulated increase, showing that it surpasses the threshold of 111,537 tribbles very quickly which is consistent with the observed growth trend in the real data.
+
+### Q: What does this plot imply about the population growth of tribbles on the ship?
+This plot implies that the tribble population on the ship is growing exponentially and without constraints, indicating density-independent growth. The rapid increase then suggests that resources are abundant, allowing unrestricted reproduction. However, if this trend continues, the tribble population could quickly become unsustainable, leading to overcrowding, resource depletion, and significant ecological and logistical challenges aboard the ship.
+
+------------------------------------------------------------------------
+
+# Exercise 3:
+
+Now plot all time points from the dataset and answer the questions below based on this plot. Use the function `geom_step()` to plot the data.
+
+```{r}
+full_data <- tribbles
+
+library(ggplot2)
+
+ggplot(full_data, aes(x = Days, y = Count)) +
+  geom_step() +
+  labs(
+    title = "Population Size of Tribbles Over All Time Points",
+    x = "Day",
+    y = "Population Size"
+  )
+```
+
+### Q: What general trend do you observe in the growth of the tribble population over this period? Does the population appear to be increasing, decreasing, or remaining stable?
+The general trend observed in the growth of the tribble population over this period is that it initially increases rapidly, reaching a peak, and then begins to fluctuate with periods of both growth and decline. While the population does not remain stable, it appears to oscillate after reaching higher values which is likely influenced by factors such as resource availability or environmental constraints. Overall, the population shows a dynamic pattern rather than consistent growth or decline.
+
+### Q: Does population growth apper to be discrete or continuous? Why?
+The population growth appears to be discrete because the graph uses a step-like pattern to represent changes in population size over time, indicating that the population does not change continuously but rather in distinct intervals, thus reflecting discrete events or measurements, such as reproduction or mortality occurring at specific points in time.
+
+### Q: Does population growth appear to be density-independent? Why or why not? Which equation, if any, do you think might best fit the trend?
+The population growth does not appear to be entirely density-independent because the trend shows fluctuations and eventual stabilization after initial rapid growth. This suggests that density-dependent factors, such as resource limitations, competition, or overcrowding, are influencing the population size. The initial exponential growth is characteristic of density-independent growth, but the later fluctuations indicate the population may be approaching or oscillating around a carrying capacity. As such, I believe the best equation for this trend would be the logistic growth equation as it accounts for an initial period of rapid growth that slows as the population size approaches the carrying capacity K, which aligns with the observed pattern of growth and fluctuation.
+
+### Q: If you think it may be a density-dependent trend, what would you estimate is the carrying capacity of the tribble population?
+If the population growth is a density-dependent trend, the carrying capacity of the tribble population can be estimated from the graph as the approximate upper limit around which the population fluctuates. As such, based on the observed trend, the carrying capacity appears to be around 10,000 to 12,000 tribbles since the population peaks near this range before showing fluctuations and declines, likely due to resource constraints or other density-dependent factors.
+
+### Q: What are some biological, ecological, or stoichastic explanations that could explain the observed trend?
+Biologically, tribbles may have a high reproductive rate that initially drives rapid population growth. Ecologically, as the population size increases, factors like limited resources, competition, and overcrowding likely cause growth to slow and fluctuate. These density-dependent factors can lead to population oscillations around a carrying capacity. Stochastically, random environmental changes, resource availability, or sudden mortality events, may also contribute to the fluctuations observed, creating variability in growth patterns even under otherwise stable conditions. 
+
+### Q: What might be some expected consequences of this trend for the tribble population for the people living on the ship?
+Some expected consequences of this trend for the tribble population for the people living on the ship include resource shortages, overcrowding, and disruptions to the ship's environment. As the tribble population fluctuates near its carrying capacity, competition for limited food and space may lead to stress, increased mortality, and potentially destabilize the population. For the people on the ship, these fluctuations could then result in significant challenges, such as depleted resources, unsanitary conditions from waste accumulation, and interference with daily activities due to the overwhelming presence of tribbles. If the population growth and fluctuations remain uncontrolled, the tribbles could create ecological and logistical crises aboard the ship.
+
+------------------------------------------------------------------------
+
+#### Opinion: what was the most useful and least useful aspect of this lab assignment? Why is that the case for you?
+The most useful aspect of this lab assignment was learning how to use R to model population dynamics and visualize growth trends, as it provided practical skills for analyzing ecological data. The least useful aspect was the repetitive plotting, as it felt redundant after the first few exercises and added little to my understanding of the concepts.
+```         
+```
+
+# References
+
+#### What outside sources did you use to help you complete this work (including books, forums, LLMs, etc.)? Describe how they were used:
+
+```         
+```
