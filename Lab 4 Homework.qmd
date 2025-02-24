@@ -1,0 +1,300 @@
+# Working with real predator/prey data
+
+## Exercise 0: Set-up and load in data `Blasius_et_al_2019.csv`[@blasius2020] using the package `readr`
+
+```{r setup, include=FALSE}
+library(readr)
+blasius_data <- read_csv("Blasius_et_al_2019.csv")
+```
+
+# Introduction
+
+In this lab, you will further explore predator/prey dynamics utilizing real-world data.
+
+## Exercise 1: Explore your dataset and describe what you see
+
+```{r}
+head(blasius_data)
+```
+
+```{r}
+summary(blasius_data)
+```
+
+```{r}
+dim(blasius_data)
+```
+
+```{r}
+names(blasius_data)
+```
+
+```{r}
+str(blasius_data)
+```
+```{r}
+names(blasius_data)
+blasius_data$`algae (10^6 cells/ml)`
+str(blasius_data)
+```
+
+```{r}
+hist(blasius_data$`algae (10^6 cells/ml)`,
+     main = "Histogram of Algae Counts",
+     xlab = "Algae (10^6 cells/ml)",
+     col = "lightblue",
+     border = "black")
+
+plot(blasius_data$`algae (10^6 cells/ml)`, blasius_data$`rotifers (animals/ml)`,
+     main = "Scatter Plot of Algae vs. Rotifers",
+     xlab = "Algae (10^6 cells/ml)",
+     ylab = "Rotifers (animals/ml)",
+     pch = 19,
+     col = "darkgreen")
+
+plot(blasius_data$`time (days)`, blasius_data$`algae (10^6 cells/ml)`,
+     type = "l",
+     main = "Algae Population Over Time",
+     xlab = "Time (days)",
+     ylab = "Algae (10^6 cells/ml)",
+     col = "blue",
+     lwd = 2)
+```
+### Q: Describe the dataset and what you see. (*Hint: Think about things like column names and what they mean (e.g. describe the species in the dataset), unique values in key columns, size of dataset, ranges of values for certain columns, aspect of the dataset that you may need to clean, what the distributions of the values look like for given columns, etc.*)
+
+```
+The dataset created presented to consist of over 366 observations (rows) that measured various aspects of an algae–rotifer system over time. The columns include time in days, algae abundance (in 10^6 cells/ml), rotifer abundance (in animals/ml), egg-ratio, total eggs per ml, dead animals per ml, and an external medium measurement (in µmol N/l). The algae and rotifer columns reflect a predator-prey relationship and both exhibit some missing values (NAs) that may require cleaning before further analysis. Then, from the summary statistics, algae values range from 0.09 to 1.91 (10^6 cells/ml), while rotifer counts span 0 to about 225 animals/ml. The histogram of algae also showed a skewed distribution with most values clustered below 1, whereas rotifers displayed a wide range. Time extends from 0 to nearly 374 days which captured over a year of observations, and the external medium remains at a constant 80 µmol N/l throughout the dataset.
+```
+
+## Exercise 1: Clean your data using dplyr. *Hint: Were there columns in your data that contained data that was a not a number? For this assignment you can remove entire rows that are problematic.*
+
+```{r}
+install.packages("tidyr")                           
+library(tidyr)
+```
+```{r}
+library(dplyr)
+library(tidyr)
+blasius_data_cleaned <- blasius_data %>%
+  drop_na()
+View(blasius_data_cleaned)
+```
+
+## Exercise 2: Plot predator population until day 4 using the `ggplot2` functions `geom_line()`, `xlim(start_time, end_time)`and`ylim(0, 50)`
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+start_time <- 0
+end_time <- 4
+
+data_sub <- blasius_data_cleaned %>%
+  filter(`time (days)` >= start_time, `time (days)` <= end_time)
+
+ggplot(data_sub, aes(x = `time (days)`, y = `rotifers (animals/ml)`)) +
+  geom_line() +
+  xlim(start_time, end_time) +
+  ylim(0, 50) +
+  labs(title = "Predator Population Over Time",
+       x = "Time (days)",
+       y = "Rotifers (animals/ml)")
+```
+
+### Q: What type of response curve do you see? Explain your reasoning.
+
+```
+From the plotted data (days 0 to 4), the predator population presented to show a rapid increase from near zero to around 20 animals/ml by day 2, then a slight dip followed by a modest rise. This pattern suggests an early, near-exponential increase (often seen when predators have abundant resources), rather than a clear logistic or steady-state pattern, and because the timeframe is short, we only observe the initial growth phase. However, if we tracked the population for longer, we might see further dynamics such as a plateau or oscillations typical of predator–prey systems.
+```
+
+### Q: Why might this predator have this type of response curve?
+
+```
+This predator population most likely exhibits this response curve due to a lag in predator growth following an initial resource (algae) availability. At the start, resources for the predators are abundant which then allows for rapid growth. However, as the predator population increases, the available prey may begin to diminish thus causing a slight dip in predator numbers or a slowing of their growth. Predators also often experience a delayed response as their population needs to build up before it stabilizes in response to changes in prey abundance, and the short time scale of the data might also limit our ability to observe more complex predator-prey interactions, such as oscillations over a longer period. for 15 seconds
+This rapid rise early on is likely because the rotifers are experiencing abundant resources (algae) with minimal competition or other limiting factors during the first few days. Rotifers have relatively short generation times and can increase quickly when food is plentiful and again, because the time window is so short, we primarily see this initial growth phase rather than any later stabilizing or declining phases that might appear once resources become limiting or other density-dependent factors come into play.
+```
+
+## Exercise 4: Plot the predator and prey populations over time in the same chart.
+
+```{r}
+library(ggplot2)
+
+ggplot(blasius_data_cleaned, aes(x = `time (days)`)) +
+  geom_line(aes(y = `algae (10^6 cells/ml)`, color = "Algae")) +
+  geom_line(aes(y = `rotifers (animals/ml)`, color = "Rotifers")) +
+  labs(
+    title = "Predator and Prey Populations Over Time",
+    x = "Time (days)",
+    y = "Population",
+    color = "Population"
+  )
+```
+
+### Q: Are you able to interpret this chart? Why or why not?
+
+```
+In this chart, it displays both the predator (rotifer) and prey (algae) populations over time, however, it appears that the two populations are on different scales. While algae starts at a certain level and appears to remain relatively stable or increase slowly, the rotifer population seems to have a much bigger range, likely due to the nature of the predator-prey model. And since algae counts are smaller (in the range of \(10^6\) cells/ml), but rotifer counts are higher (in animals/ml), it may be hard to directly compare the two on a single axis. Without separating the y-axes or taking logarithmic transformations for one of the variables, it’s difficult to draw concrete conclusions from this chart alone regarding the specific dynamics of the predator-prey relationship. Therefore, interpreting the chart completely or accurately in its current form could be challenging. 
+
+Again, it’s difficult to interpret both populations on the same y-axis because the rotifer counts reach much higher values (up to around 200 animals/ml) compared to the algae (0.1–2.0 × 10^6 cells/ml), and with this large difference in magnitude compressing the algae line near the x-axis, all it does is make its variation nearly invisible. As such, in order to better visualize both populations, we might use separate y-axes or transform one of the variables so both can be observed at comparable scales.
+```
+
+## Exercise 5: Use the following code to plot predator and prey populations over time in the same chart (*Note that there are two Y-axes displayed in the same plot*).
+
+```{r}
+library(scales)
+
+ggplot(blasius_data_cleaned, aes(x = `time (days)`)) +
+  geom_line(aes(y = `rotifers (animals/ml)`), color = "blue") +
+  geom_line(
+    aes(
+      y = rescale(
+        `algae (10^6 cells/ml)`, 
+        to = c(0, max(blasius_data_cleaned$`rotifers (animals/ml)`))
+      )
+    ), 
+    color = "green"
+  ) +
+  scale_y_continuous(
+    name = "Rotifers (animals/ml)",
+    sec.axis = sec_axis(
+      ~ rescale(
+        .x,
+        from = c(0, max(blasius_data_cleaned$`rotifers (animals/ml)`)),
+        to   = c(min(blasius_data_cleaned$`algae (10^6 cells/ml)`), 
+                 max(blasius_data_cleaned$`algae (10^6 cells/ml)`))
+      ), 
+      name = "Algae (10^6 cells/ml)"
+    )
+  ) +
+  labs(title = "Predator and Prey Populations Over Time", 
+       x = "Time (days)")
+```
+
+### Q: What do you observe?
+
+```
+From the dual-axis plot, we can see that the rotifer population (blue line) fluctuates substantially, ranging from near zero up to around 200 animals/ml, while the algae population (green line) remains within roughly 0 to 2 (10^6 cells/ml). Both populations exhibit ongoing ups and downs rather than a smooth trajectory which suggest a dynamic interactions. Notably, there are occasional peaks in the rotifer population (e.g., near day 300), which coincide with dips or fluctuations in algae abundance which also reflect a classic predator–prey relationship where changes in one population can drive shifts in the other.
+```
+
+### Q: Do you think this system is stable or unstable? Explain.
+
+```
+In my opinion, I feel the system appears to be relatively stable in the sense that neither population goes extinct nor grows without bound; both remain within certain limits over the observed time. However, the pronounced fluctuations and occasional spikes indicate the system does not settle into a flat equilibrium, but rather oscillates around some mean levels. In terms, this kind of cycling is common in predator–prey dynamics, where predator abundance lags behind prey abundance, leading to repeating peaks and troughs. And so, while it may look “unstable” if we expect a constant population size, in ecological terms these oscillations can represent a stable limit cycle meaning the populations persist through time despite ongoing variability.
+```
+
+# Rosenzweig-MacArthur model
+
+## Exercise 6: Imagine a scenario where the rotifers are introduced to a new algae system and gradually improve at handling prey over time. Using the Rosenzweig-MacArthur model equations from lab, model this scenario with `Time <- seq(0, 2000, by = 0.1)`.
+
+$$
+r = 0.5\\
+a = 0.01\\
+f = 0.1\\
+q = 0.2\\
+h = 0.001\\
+K = 1000\\
+$$
+
+```{r}
+library(deSolve)
+
+params <- c(r = 0.5,  
+            a = 0.01, 
+            f = 0.1,  
+            q = 0.2,  
+            h = 0.001, 
+            K = 1000) 
+
+N0 <- 50  
+P0 <- 5  
+y0 <- c(N = N0, P = P0)
+
+Time <- seq(0, 2000, by = 0.1)
+
+rosenzweig_macarthur <- function(t, y, parms) {
+  with(as.list(c(y, parms)), {
+    dN <- r * N * (1 - N/K) - (a * N * P) / (1 + a * h * N)
+    dP <- f * (a * N * P) / (1 + a * h * N) - q * P
+    list(c(dN, dP))
+  })
+}
+
+out <- ode(y = y0, times = Time, func = rosenzweig_macarthur, parms = params)
+
+out_df <- as.data.frame(out)
+
+plot(out_df$time, out_df$N, type = "l", col = "green", 
+     xlab = "Time", ylab = "Population", ylim = c(0, max(out_df$N, out_df$P)),
+     main = "Rosenzweig–MacArthur Model")
+lines(out_df$time, out_df$P, col = "blue")
+legend("topright", legend = c("Prey (N)", "Predator (P)"), 
+       col = c("green", "blue"), lty = 1)
+```
+
+### Q: Do you think this system is stable or unstable? Explain.
+
+```
+Given the parameter values used, the system settles into a constant (equilibrium) population level for both prey and predator, indicating stability. Instead of showing persistent oscillations or chaotic dynamics, both populations converge to a steady state, which means that small deviations from this point would likely dampen out over time. Thus, in ecological terms, the model predicts a stable coexistence rather than an unstable cycle or extinction.
+```
+
+# Functional Responses
+
+## Exercise 7:
+
+As another way to represent functional response curves, represent the code below as a dataframe using `df <- data.frame(N = seq(0, 50, length.out = 100))` and plot it using the `ggplot()` `stat_function()` function:
+
+$$
+F = \frac{bN^{1+q}}{1+bhN^{1+q}}
+$$
+
+```{r, echo = FALSE}
+library(ggplot2)
+
+b <- 0.5
+q <- 0.2
+h <- 0.01
+
+df <- data.frame(N = seq(0, 50, length.out = 100))
+
+ggplot(df, aes(x = N)) +
+  stat_function(
+    fun = function(x) {
+      (b * x^(1 + q)) / (1 + b * h * x^(1 + q))
+    },
+    color = "blue",
+    size = 1
+  ) +
+  labs(
+    title = "Functional Response Curve",
+    x = "Prey Density (N)",
+    y = "F(N)"
+  ) +
+  theme_minimal()
+```
+
+### Q: What do you notice as you vary the values of the terms?
+
+```
+As you change the parameters b, q, and h, the shape and saturation level of the curve shift noticeably. When increasing b, it generally steepens the curve then causing the function to rise faster and saturate at higher values. When increasing q, it would change how quickly the curve accelerates at low prey densities thus transitioning from a near-linear (Type II) response to a more sigmoid (Type III) shape if q is high enough. Meanwhile, increasing h (handling time) lowers the overall saturation level then reflecting the predator’s reduced efficiency at high prey densities.
+```
+
+### Q: Which response curves do you observe?
+
+```         
+Depending on how you set q, you’ll see either a near-Type II (when q is close to 0, producing a hyperbolic rise and saturation) or a Type III (when q is significantly greater than 0, creating a more sigmoidal shape). Adjusting b and h further shifts how steeply the curve rises and at what prey density it saturates, but the biggest switch between Type II and Type III behavior is driven by the value of q.
+```
+
+------------------------------------------------------------------------
+
+#### Opinion: what was the most useful and least useful aspect of this lab assignment? Why is that the case for you?
+
+```
+In my opinion, for me, the most useful aspect was gaining hands-on experience with ecological modeling and visualization in R, while the least useful part was troubleshooting minor syntax and package errors that occasionally interrupted workflow.
+```
+
+#### What outside sources did you use to help you complete this work (including books, forums, LLMs, etc.)? Describe how they were used:
+
+``` plaintext
+```
+
+# References
