@@ -1,0 +1,238 @@
+# Working with real interspecific data
+
+For this assignment, you will search online to find and analyze a dataset other than the one used in lab to see if competition appears to be occurring between 2 species. Try using resources like Google Scholar, Google Dataset Search, Zenodo, among others to find a dataset.
+
+## Exercise 0: Set-up and load data
+
+```{r setup, include=FALSE}
+setwd("~/Desktop")
+install.packages("readxl")
+library(readxl)
+data <- read_excel("Lab 5 Dataset.xlsx")
+```
+
+## 1: Describe your dataset and how it was collected
+
+```
+The dataset, 'The Effect of Inter- and Intraspecific Competition on Individual and Population Niche Widths – A Four-Decade Study on Two Interacting Salmonids' examines the effects of inter- and intraspecific competition on the niche widths of two interacting salmonid species over four decades. My data was collected from freshwater lakes in Norway where researchers monitored population dynamics, diet composition, as well as habitat use of Arctic charr (Salvelinus alpinus) and brown trout (Salmo trutta). The sampling involved gillnet fishing, stomach content analysis to assess dietary overlap, and stable isotope analysis to track long-term shifts in resource use. Then, environmental factors, such as water temperature and prey availability were also recorded to evaluate how ecological conditions influenced competition, all of which providing insights into how competitive interactions shape species distributions and ecological niches over time.
+```
+
+## 2: Explore your dataset and describe what you see
+
+```{r}
+head(data)
+str(data)
+summary(data)
+colSums(is.na(data))
+table(data$Species)
+```
+
+```
+The dataset contains 2046 observations and 49 columns with no apparent missing values that I noticed. As mentioned, my data focuses on two salmonid species, the Arctic charr (Salvelinus alpinus) as well as the brown trout (Salmo trutta), with 1424 charr and 622 trout recorded. It includes fish length, diet composition (percentage of different prey items like Bosmina, Daphnia, Gammarus), and environmental factors, with many columns representing dietary percentages that shows variation in resource use. The dataset suggests that Arctic charr are more numerous than brown trout in the study area and provides detailed insights into how each species utilizes available food resources which is essential for analyzing interspecific competition.
+```
+## 3: Clean your data using dplyr
+
+```{r}
+colnames(data)
+
+library(dplyr)
+
+data <- data %>% select(Species, Length, `FG%`, 
+                        `Bosmina%`, `Daphnia%`, `Holoped%`, `Bythotr%`, `Polyphem%`, 
+                        `Cyclcop%`, `Calcop%`, `Eurycerc%`, `Gammarus%`, `Lymnea%`, 
+                        `Planorbis%`, `Valvata%`, `Pisidium%`, `Surfins%`, `Chirp%`, 
+                        `Chirl%`, `Trichoppup%`, `Trichophouse%`, `Trichopnhouse%`, 
+                        `Ephemeroptl%`, `Plecoptl%`, `Sialis%`, `Tipulidl%`, 
+                        `Coleoptera%`, `Watermite%`, `Fishunid%`, `cop`, `amp`, 
+                        `moll`, `pleuston`, `chirp`, `chirl`, `trich`, `obent`, `fish`)
+```
+```{r}
+colnames(data)
+dim(data)
+head(data)
+```
+
+## 4: Plot your data for initial analysis/description of your dataset. What trends do you see?
+
+```{r}
+library(ggplot2)  # Load ggplot2
+
+ggplot(data, aes(x = Length, fill = Species)) +
+  geom_histogram(binwidth = 10, alpha = 0.7, position = "dodge") +
+  labs(title = "Fish Size Distribution", x = "Length (mm)", y = "Count") +
+  theme_minimal()
+
+ggplot(data, aes(x = Species, y = `Bosmina%`, fill = Species)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Bosmina Consumption by Species", x = "Species", y = "Bosmina %") +
+  theme_minimal()
+
+ggplot(data, aes(x = Species, y = `Daphnia%`, fill = Species)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Daphnia Consumption by Species", x = "Species", y = "Daphnia %") +
+  theme_minimal()
+```
+
+```
+From the data visualizations, they reveal clear trends in fish size and diet composition between Arctic charr and brown trout. In the histogram, it indicated that charr are more abundant across all size classes, but both species exhibit similar length distributions which suggests potential competition across different growth stages. Then, the boxplots for Bosmina% and Daphnia% consumption show that charr rely heavily on these prey items, while trout consume almost none. This suggests a strong dietary separation that potentially reduces direct competition for food. However, the high variability in charr’s diet (with many individuals consuming up to 100% of certain prey) then suggests that they may be opportunistic feeders that possibly outcompete trout in shared environments. In summary, all these trends indicate that interspecific competition may be limited by resource partitioning where trout likely depend on alternative food sources.
+```
+
+## 5: Define the Lotka-Voltera interspecific competition model function
+
+```{r}
+library(deSolve)
+
+lotka_volterra_competition <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dN1dt <- r1 * N1 * (1 - (N1 + alpha12 * N2) / K1)
+    dN2dt <- r2 * N2 * (1 - (N2 + alpha21 * N1) / K2)
+    
+    list(c(dN1dt, dN2dt))
+  })
+}
+```
+
+## 6: Extract the argument values from your dataset necessary as inputs into the Lotka-Voltera interspecific competition model
+
+```{r}
+times <- seq(0, 100, by = 1)
+```
+
+```{r}
+N01 <- nrow(data %>% filter(Species == "charr")) 
+N02 <- nrow(data %>% filter(Species == "trout")) 
+
+N01
+N02
+```
+
+```{r}
+library(dplyr)
+
+r1 <- mean(diff(data %>% filter(Species == "charr") %>% arrange(Length) %>% pull(Length)))
+r2 <- mean(diff(data %>% filter(Species == "trout") %>% arrange(Length) %>% pull(Length)))
+
+r1
+r2
+```
+
+```{r}
+library(dplyr)
+
+alop_data <- data %>%
+  arrange(Species, Length) %>%
+  group_by(Species) %>%
+  mutate(lag_length = lag(Length)) %>%
+  filter(!is.na(lag_length)) %>%  
+  mutate(change_in_length = Length - lag_length) 
+
+a11_model <- lm(change_in_length ~ lag_length, data = alop_data %>% filter(Species == "charr"))
+a11 <- coef(a11_model)[2]  
+
+a22_model <- lm(change_in_length ~ lag_length, data = alop_data %>% filter(Species == "trout"))
+a22 <- coef(a22_model)[2]  
+
+a11
+a22
+```
+
+```{r}
+library(dplyr)
+
+inter_data <- data %>%
+  group_by(Species) %>%
+  summarize(avg_length = mean(Length)) 
+
+a21 <- inter_data$avg_length[inter_data$Species == "charr"] / inter_data$avg_length[inter_data$Species == "trout"]
+a12 <- inter_data$avg_length[inter_data$Species == "trout"] / inter_data$avg_length[inter_data$Species == "charr"]
+
+a21
+a12
+```
+
+## 7: Run your model and plot using `ggplot2`
+
+```{r}
+library(deSolve)
+library(dplyr)
+library(ggplot2)
+
+params <- list(
+  r1 = r1, r2 = r2,     
+  K1 = max(N01, N02),   
+  K2 = max(N01, N02), 
+  alpha12 = a12,          
+  alpha21 = a21         
+)
+
+state <- c(N1 = N01, N2 = N02)
+
+out <- ode(
+  y = state, 
+  times = times, 
+  func = lotka_volterra_competition, 
+  parms = params
+)
+
+out_df <- as.data.frame(out)
+
+ggplot(out_df, aes(x = time)) +
+  geom_line(aes(y = N1, color = "Charr"), size = 1) + 
+  geom_line(aes(y = N2, color = "Trout"), size = 1) +
+  labs(title = "Lotka-Volterra Competition Model",
+       x = "Time", 
+       y = "Population Size") +
+  scale_color_manual(name = "Species", values = c("Charr" = "blue", "Trout" = "red")) +
+  theme_minimal()
+```
+
+## 8: Interpret your results, what do you observe?
+```
+The zero-growth isocline analysis supports the earlier findings that Arctic charr outcompete brown trout. The isoclines shows that trout's population declines in most scenarios while charr reach a stable equilibrium, thus reinforcing, yet again, the idea of competitive exclusion. The lack of a clear intersection then suggests that coexistence is unlikely under pure competition which also aligns with the Lotka-Volterra model results, further confirming that charr have a stronger competitive advantage (possibly due to better resource utilization or higher population resilience). Again though, in real ecosystems, additional factors like environmental variability or habitat partitioning could alter this outcome, but under the given conditions, the analysis strongly supports charr dominance over trout.
+```
+
+## 9: Bonus, plot a zero growth isocline analysis on your dataset:
+
+```{r}
+library(ggplot2)
+
+zgi_data <- data.frame(
+  N1 = seq(0, max(N01, N02) * 1.5, length.out = 100)
+)
+
+zgi_data$N2_for_N1 = (params$K1 - zgi_data$N1) / params$alpha12
+zgi_data$N2_for_N2 = params$K2 - params$alpha21 * zgi_data$N1 
+
+ggplot() +
+  geom_line(data = zgi_data, aes(x = N1, y = N2_for_N1, color = "Charr Isocline"), linewidth = 1) +
+  geom_line(data = zgi_data, aes(x = N1, y = N2_for_N2, color = "Trout Isocline"), linewidth = 1) +
+  labs(title = "Zero-Growth Isoclines for Charr and Trout",
+       x = "N1 (Charr Population)",
+       y = "N2 (Trout Population)") +
+  scale_color_manual(name = "Isoclines", values = c("Charr Isocline" = "blue", "Trout Isocline" = "red")) +
+  theme_minimal()
+```
+
+### What do you observe? Does this agree with your earlier analysis?
+```
+The zero-growth isocline analysis supports the earlier findings that Arctic charr outcompete brown trout. The isoclines shows that trout's population declines in most scenarios while charr reach a stable equilibrium, thus reinforcing, yet again, the idea of competitive exclusion. The lack of a clear intersection then suggests that coexistence is unlikely under pure competition which also aligns with the Lotka-Volterra model results, further confirming that charr have a stronger competitive advantage (possibly due to better resource utilization or higher population resilience). Again though, in real ecosystems, additional factors like environmental variability or habitat partitioning could alter this outcome, but under the given conditions, the analysis strongly supports charr dominance over trout.
+```
+
+------------------------------------------------------------------------
+
+# References
+```
+Prati, S., Henriksen, E., Smalås, A., Knudsen, R., Klemetsen, A., Sánchez-Hernández, J., & Amundsen, P.-A. (2021).  
+The effect of inter- and intraspecific competition on individual and population niche widths – a four-decade study on two interacting salmonids.  
+Dryad Digital Repository. https://doi.org/10.5061/dryad.95x69p8jx  
+
+Lotka, A. J. (1925). Elements of Physical Biology. Williams & Wilkins.  
+
+Volterra, V. (1926). Fluctuations in the abundance of a species considered mathematically. Nature, 118(2972), 558-560.  
+
+Soetaert, K., Petzoldt, T., & Setzer, R. W. (2010). Solving differential equations in R: Package deSolve. Journal of Statistical Software, 33(9), 1-25.  
+
+Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag New York.  
+
+Wickham, H., François, R., Henry, L., & Müller, K. (2023). dplyr: A grammar of data manipulation. R package version 1.1.3. https://CRAN.R-project.org/package=dplyr  
+```
