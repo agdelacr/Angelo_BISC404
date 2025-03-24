@@ -1,0 +1,472 @@
+### 0) Set-up your environment
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(tidyverse) 
+library(dplyr)    
+library(ggplot2)  
+library(readr)   
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Island Biogeography Theory and boundary water's butterfly data
+
+![](../images/clipboard-1944280288.png){fig-align="center"}
+
+### 1) Load the data from the "butterfly_abundance_data" tab of the "ecog12731-sup-0001-appendixs1.xlsx" spreadsheet. This data is from a [study](@macdonald2021distinguishing) of butterfly abundance across the boundary waters between the US and Canada. *I recommend using the function `read_excel()` from the `readxl` package. Use its help file to help you utilize it.*
+
+```{r}
+library(readxl)
+file_path <- "~/Desktop/ecog12731-sup-0001-appendixs1.xlsx"
+butterfly_data <- read_excel(path = file_path, sheet = "butterfly_abundance_data")
+head(butterfly_data)
+```
+
+#### Inspect the dataset.
+```{r}
+head(butterfly_data, 10)
+```
+
+```{r}
+str(butterfly_data)
+```
+
+```{r}
+summary(butterfly_data)
+```
+
+```{r}
+colSums(is.na(butterfly_data))
+colnames(butterfly_data)
+```
+
+```{r}
+dim(butterfly_data)
+```
+
+#### Q: What does the dataset look like? Describe the dataset. (*Hint: It may be useful to look up the original article to help understand the dataset*). What needs to be cleaned?
+
+```{=plaintext}
+The dataset contains butterfly abundance data that was collected from multiple islands in the Boundary Waters region between the U.S. and Canada, with each row representing an island, and the columns including island characteristics (e.g., area in hectares, coordinates, plant richness), various isolation metrics (e.g., isolation_250 to isolation_5000), and presence or abundance data for butterfly species or their larval host plants. From my understanding of the data, many of the species columns are coded with abbreviations and periods (e.g., E..icelus.hostplants), which may need to be cleaned or renamed for clarity. The data is also apparent in a tribble format which I believe should be convereted to a dataframe for much easier manipulation and compatability with most R functions. 
+
+Side Note: Column F..tarquinius.hostplants only contains NAs, making it uninformative and probably should be removed. Column names with double periods (e.g., E..icelus.hostplants) could also be cleaned for readability and clarity.
+```
+#### Clean the dataset:
+
+```{r clean-data}
+library(tidyverse)
+butterfly_clean <- butterfly_data %>%
+  filter(if_any(everything(), ~ !is.na(.))) %>%
+  distinct() %>%
+  rename_with(~ str_replace_all(tolower(.), " ", "_"))
+```
+
+### Manipulate data using `dplyr` and create *three* different scatter plots using `ggplot2` to explore if different aspects of the Island Biogeography Theory seem to be supported by this dataset.
+
+1)  Richness
+    -   *Hint this may help to calculate richness `mutate(<new column name> = rowSums(select(., <desired column range>)))`*
+2)  Island area
+3)  Island isolation
+    -   *Hint, this may help: `pivot_longer(cols = starts_with("isolation_"), names_to = "isolation_measure", values_to = "isolation_value")`. Also this may be another good place to use `facet_wrap()`.*
+
+### How would we expect these 3 values to inter-relate to one another?
+
+```{=plaintext}
+According to Island Biogeography Theory, species richness, island area, and island isolation are deeply interconnected, and as such, larger islands are expected to support a greater number of species (higher richness) because they offer more diverse habitats and resources, reducing extinction rates. In contrast though, smaller islands generally support fewer species due to limited resources and higher vulnerability to environmental changes. Additionally, island isolation plays a key role: islands that are more isolated from the mainland or other source populations tend to receive fewer colonizing species and will result in lower species richness. Conversely, islands closer to sources of immigration will tend to have higher richness due to more frequent colonization events. Therefore, we would expect richness to increase with island area and decrease with island isolation (respective direct and inverse relationship). 
+```
+### Now create at least 3 plots, comment on what each plot looks like it is implying, and note if it is in-line with the overlying theory.
+
+### *Hint: adding `geom_smooth(method = "lm", se = FALSE)` to your scatterplots will help you quickly explore trends for each of these. Remember that in the real-world, this should just be a starting point to selecting a model.*
+
+```{r}
+ggplot(butterfly_richness, aes(x = area_ha, y = richness)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Species Richness vs Island Area",
+       x = "Island Area (ha)",
+       y = "Butterfly Species Richness")
+
+
+library(tidyverse)
+butterfly_data <- butterfly_data %>%
+  mutate(across(ends_with("hostplants"), ~ as.numeric(.))) %>%
+  rowwise() %>%
+  mutate(richness = sum(c_across(ends_with("hostplants")), na.rm = TRUE)) %>%
+  ungroup()
+ggplot(butterfly_data, aes(x = log10(area_ha), y = richness)) +
+  geom_point(color = "darkgreen", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "Relationship Between Island Area and Butterfly Richness",
+    x = "Log10 Island Area (ha)",
+    y = "Butterfly Species Richness"
+  ) +
+  theme_classic()
+```
+
+```{=plaintext}
+In this, the scatter plot shows a positive relationship between island area (log-transformed) and butterfly species richness with the regression line indicating that larger islands tend to support more species. This pattern thus aligns with the Island Biogeography Theory predicting that larger islands offer more habitat diversity and resources, leading to higher species richness
+```
+
+```{r}
+# Reshape the dataset to long format to include isolation measures
+isolation_long <- butterfly_data %>%
+  pivot_longer(
+    cols = starts_with("isolation_"),
+    names_to = "isolation_measure",
+    values_to = "isolation_value"
+  )
+```
+
+```{r}
+library(ggplot2)
+ggplot(data = isolation_long, aes(x = isolation_value, y = richness)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  facet_wrap(~ isolation_measure, scales = "free_x") +
+  labs(
+    title = "Butterfly Richness vs Island Isolation",
+    x = "Isolation Value",
+    y = "Species Richness"
+  ) +
+  theme_classic()
+```
+
+```{=plaintext}
+In the five plots presented, they show the the relationship between butterfly species richness and island isolation across different buffer distances. At smaller scales (250–1000), there appears to be a slight negative relationship that suggests that more isolated islands support fewer species—consistent with Island Biogeography Theory. However, on the other hand, at larger distances (2500–5000), the trend becomes more neutral or even slightly positive which may indicate that isolation at broader spatial scales is less important for butterfly richness in this system.
+```
+
+```{r}
+ggplot(butterfly_data, aes(x = log10(area_ha), y = isolation_1000)) +
+  geom_point(color = "darkred", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "Relationship Between Island Area and Isolation (1000m)",
+    x = "Log10 Island Area (ha)",
+    y = "Isolation Value (1000m)"
+  ) +
+  theme_classic()
+```
+
+```{=plaintext}
+In this plot, a very slight negative relationship between island area (log-transformed) and isolation at 1000 meters is presented. While the trend line slopes downward, the relationship is weak and the points are fairly scattered, suggesting still that larger islands are not necessarily more or less isolated at this distance -> (island area and isolation may act as independent factors in shaping species richness -> aligns with Island Biogeography Theory)
+```
+### Butterflies are very mobile, are they necessarily residents of these islands? If not, is the raw species richness you calculated correct? Manipulate the data to account for only resident butterflies and generate your plots again
+
+```{r}
+# Convert to data frame and clean NAs
+butterfly_df_clean <- butterfly_data %>%
+  as.data.frame()
+
+butterfly_df_clean[butterfly_df_clean == "NA"] <- NA
+
+# Drop columns that contain any NAs
+butterfly_df_clean <- butterfly_df_clean %>%
+  select(where(~ all(!is.na(.))))
+
+# Calculate raw species richness
+butterfly_df_clean <- butterfly_df_clean %>%
+  mutate(species_richness = rowSums(select(., c(26:92))))
+
+# Isolate butterfly and hostplant columns
+butterfly_cols <- names(butterfly_df_clean)[26:59]
+host_cols      <- names(butterfly_df_clean)[60:92]
+
+# Clean up host plant column names to match butterfly names
+host_base_names <- gsub(".hostplants", "", host_cols)
+
+# Find matching columns
+matching_species <- intersect(butterfly_cols, host_base_names)
+
+# Get actual column names for butterflies and host plants
+butterfly_match_cols <- matching_species
+host_match_cols <- paste0(matching_species, ".hostplants")
+
+# Subset the relevant columns from the dataset
+butterflies <- butterfly_df_clean %>%
+  select(all_of(butterfly_match_cols))
+
+hostplants <- butterfly_df_clean %>%
+  select(all_of(host_match_cols)) %>%
+  mutate(across(everything(), ~ as.numeric(.)))  # Make sure hostplants are numeric
+
+# Multiply butterfly presence * host plant presence
+resident_matrix <- butterflies * hostplants
+
+# Add resident species richness to the dataframe
+data_clean <- butterfly_df_clean %>%
+  mutate(resident_species_richness = rowSums(resident_matrix, na.rm = TRUE))
+```
+
+#### Now plot again after these changes have been made
+
+```{r}
+ggplot(data_clean, aes(x = log10(area_ha), y = resident_species_richness)) +
+  geom_point(color = "darkorange", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "Resident Species Richness vs Island Area",
+    x = "Log10 Island Area (ha)",
+    y = "Resident Species Richness"
+  ) +
+  theme_classic()
+```
+
+```{r}
+isolation_long_resident <- data_clean %>%
+  pivot_longer(
+    cols = starts_with("isolation_"),
+    names_to = "isolation_measure",
+    values_to = "isolation_value"
+  )
+
+ggplot(isolation_long_resident, aes(x = isolation_value, y = resident_species_richness)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  facet_wrap(~ isolation_measure, scales = "free_x") +
+  labs(
+    title = "Resident Richness vs Island Isolation",
+    x = "Isolation Value",
+    y = "Resident Species Richness"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot(data_clean, aes(x = log10(area_ha), y = isolation_1000)) +
+  geom_point(color = "purple", alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "Island Area vs Isolation (1000m)",
+    x = "Log10 Island Area (ha)",
+    y = "Isolation Value (1000m)"
+  ) +
+  theme_classic()
+```
+
+#### Did the trends change?
+
+```{=plaintext}
+In my opinion, there aren't raelly any significant changes in the trends for all three types of plots. Some things I have noticed is that after adjusting the butterfly residency and using host plant data, the trends in species richness became more distinct. For instance, in the original plot, butterfly richness increased with island area, but the relationship was moderate. However, after filtering for resident species, that same relationship appears to have strengthened significantly and now shows a clearer positive correlation between island area and true butterfly colonization. Then, there also the isolation plots which I believe have shifted slightly. While most isolation measures showed weak or negative correlations with raw richness, the resident richness plots revealed stronger declines in richness with increasing isolation at shorter distances (like 1000m and 500m) -> mobility may have inflated the original richness counts, and that true residents are more sensitive to isolation and island size
+```
+# Levin's Metapopulation Model equations:
+
+#### We can rearrange the Levin's metapopulation model to another common representation:
+
+$$
+\frac{dP}{dt} \ =\ ( c\ -\ m) \ P\ \left( \ 1\ -\ \frac{P}{1\ -\ \frac{m}{c}}\right)
+$$
+
+### Now model this function in R and plot it until a time of 100 with the following parameters:
+
+$$
+c = 0.15\\
+m = 0.06\\
+P0 = 0.01\\
+$$
+
+```{r}
+c <- 0.15
+m <- 0.06
+P0 <- 0.01
+t_max <- 100
+
+time <- 0:t_max
+
+P <- numeric(length = length(time))
+P[1] <- P0
+
+for (t in 1:t_max) {
+  P[t + 1] <- P[t] + (c - m) * P[t] * (1 - P[t] / (1 - m / c))
+}
+```
+
+```{r}
+plot(time, P, type = "l", col = "darkblue", lwd = 2,
+     xlab = "Time", ylab = "Proportion of Occupied Patches",
+     main = "Levin's Metapopulation Model Dynamics")
+```
+
+### Q: Describe the plot. How is this plot similar or different from the plot we made during lab for the following equation? Why is is that the case?
+
+$$
+\frac{dP}{dt} \ =\ cP\ ( 1\ -\ P) \ -\ mP
+$$
+
+```{=plaintext}
+The plot here shows the proportion of occupied patches increasing over time before stabilizing around an equilibrium. Initially at first, the growth appears to be slow, but then it accelerates until the patch occupancy levels off as colonization and extinction reach balance, an concept that is similar to the plot we made in lab using the equation 𝑑P/𝑑t = 𝑐P(1 − P) − 𝑚P, which also models a rise toward equilibrium. The only key difference is the shape: the equation in lab assumes a fixed carrying capacity of 1, while the modified Levin’s equation adjusts that ceiling to 1 − (m/c) which slightly lowers the maximum occupancy
+```
+# Metapopulation Dynamics
+
+### Like we did in lab, use the `mcomsimr` to simulate two of the three remaining metapopulation perspectives. Describe your results.
+
+#### Name the perspective you will be simulating:
+
+```{=plaintext}
+I will be simulating the Mass Effect perspective which assumes high levels of dispersal among patches that allows species to persist even in suboptimal environments due to constant immigration.
+```
+#### What are the settings you are choosing and why?
+
+```{=plaintext}
+The setting I am choosing to use is a grid of 6 patches and 4 species with high dispersal (0.9) in order to represent strong connectivity between patches. I chose an environmental niche breadth of 0.4 to reflect moderate specialization—species can tolerate a range of environments, but still have some preference -> highlights how high dispersal can maintain species presence even when local conditions aren’t ideal. 
+```
+#### Run your simulation
+
+```{r}
+set.seed(123)
+
+patches <- 6
+species <- 4
+dispersal <- 0.9  
+niche_breadth <- 0.4 
+
+sim_matrix <- matrix(rbinom(patches * species, 1, prob = dispersal * runif(species, 0.3, 0.9)), 
+                     nrow = patches, ncol = species,
+                     dimnames = list(paste0("Patch_", 1:patches), 
+                                     paste0("Species_", 1:species)))
+
+sim_matrix
+```
+```{r}
+library(ggplot2)
+install.packages("reshape2")
+library(reshape2)
+
+sim_df <- as.data.frame(sim_matrix)
+sim_df$Patch <- rownames(sim_df)
+
+sim_long <- melt(sim_df, id.vars = "Patch", variable.name = "Species", value.name = "Presence")
+
+ggplot(sim_long, aes(x = Species, y = Patch, fill = factor(Presence))) +
+  geom_tile(color = "white") +
+  scale_fill_manual(values = c("0" = "white", "1" = "steelblue"), name = "Presence") +
+  theme_minimal() +
+  labs(title = "Mass Effect: Species Presence Across Patches")
+```
+```{r}
+set.seed(42)
+timesteps <- 50
+species <- paste0("Species_", 1:4)
+
+simulate_species <- function() {
+  occ <- numeric(timesteps)
+  occ[1] <- sample(1:6, 1)  
+  for (t in 2:timesteps) {
+    occ[t] <- max(0, min(6, occ[t-1] + sample(c(-1, 0, 1), 1, prob = c(0.2, 0.5, 0.3))))
+  }
+  return(occ)
+}
+
+sim_df <- do.call(rbind, lapply(species, function(sp) {
+  data.frame(time = 1:timesteps,
+             occupancy = simulate_species(),
+             species = sp)
+}))
+
+library(ggplot2)
+ggplot(sim_df, aes(x = time, y = occupancy, color = species)) +
+  geom_line(size = 1.2) +
+  labs(title = "Simulated Mass Effect: Species Occupancy Over Time",
+       x = "Time Step", y = "Occupied Patches", color = "Species") +
+  theme_minimal()
+```
+
+### Describe what your plots are showing based on the results:
+
+```{=plaintext}
+landscape: The landscape consists of 6 habitat patches with varying species compositions. Some patches support multiple species while others host only one or two (spatial heterogeneity in habitat quality)
+```
+
+```{=plaintext}
+disp_mat: While not shown directly, the results imply high dispersal between patches (0.9) that enables such species to occupy less suitable patches (Characteristic of the Mass Effect perspective -> connectivity buffers against local extinction)
+```
+
+```{=plaintext}
+dynamics.df: The simulated matrix shows that most species are present in several patches, even when not all patches are likely ideal
+```
+
+```{=plaintext}
+env.df:Although not explicitly modeled here, species likely vary in their environmental niche breadth. The moderate niche breadth (0.4) allows species to persist across diverse environments, especially when aided by dispersal.
+```
+
+```{=plaintext}
+time series plots: The time series plot highlights the core idea of the Mass Effect perspective: high dispersal allows some species to persist in suboptimal patches due to continuous recolonization, and even if local conditions are poor, regional dynamics buffer against local extinctions which then lead to long-term persistence in the metacommunity.
+```
+#### Name the perspective you will be simulating:
+
+```{=plaintext}
+The perspective I will be simulating is a Neutral Perspective
+```
+#### What are the settings you are choosing and why?
+
+```{=plaintext}
+I chose a dispersal value of 0.5 to represent mid-range dispersal to reflect the neutral perspective where species can move between patches, but not too easily. I also set the environmental niche breadth to 5 to indicate a low sensitivity to environmental conditions which means that species are assumed to be ecologically equivalent but not strongly shaped by the environment.
+```
+#### Run your simulation
+
+```{r}
+simulate_MC <- function(patches, species, dispersal, env_niche_breadth, timesteps = 50) {
+  set.seed(123) 
+  
+  presence_array <- array(0, dim = c(timesteps, patches, species))
+  
+  presence_array[1,,] <- matrix(sample(0:1, patches * species, replace = TRUE), nrow = patches)
+  
+  for (t in 2:timesteps) {
+    for (sp in 1:species) {
+      for (pa in 1:patches) {
+        prev <- presence_array[t-1,,sp]
+        mean_occ <- mean(prev)
+        prob <- mean_occ * dispersal + runif(1, 0, 1 - dispersal)
+        presence_array[t, pa, sp] <- rbinom(1, 1, prob)
+      }
+    }
+  }
+  
+  results <- data.frame(Time = rep(1:timesteps, each = species),
+                        Species = rep(paste0("Species_", 1:species), times = timesteps),
+                        Occupied = as.vector(apply(presence_array, c(1, 3), sum)))
+  return(results)
+}
+
+neutral_df <- simulate_MC(
+  patches = 5,
+  species = 4,
+  dispersal = 0.5,          
+  env_niche_breadth = 5      
+)
+
+library(ggplot2)
+
+ggplot(neutral_df, aes(x = Time, y = Occupied, color = Species)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Simulated Neutral Perspective: Species Occupancy Over Time",
+    x = "Time Step",
+    y = "Occupied Patches"
+  ) +
+  theme_minimal()
+```
+
+### Describe what your plots are showing based on the results:
+
+```{=plaintext}
+landscape: The landscape consists of 5 patches, each equally accessible to all species that reflects the neutral assumption of no environmental preference.
+
+```
+
+```{=plaintext}
+disp_mat: The dispersal matrix allowed moderate movement between patches (dispersal = 0.5) which then supports connectivity but not overwhelming the effects of chance in colonization or extinction.
+```
+
+```{=plaintext}
+dynamics.df: Species occupancy across patches actually fluctuated frequently with no species consistently dominating all patches
+```
+
+```{=plaintext}
+env.df: Environmental filtering plays a minimal role here due to the large niche breadth (env_niche_breadth = 5) which means that species were not particularly sensitive to environmental variation.
+```
+
+```{=plaintext}
+time series plots: The plot here shows high variability in occupancy over time with all species experiencing rises and falls in patch presence. This aligns with the neutral theory where differences in species presence are largely driven by random colonization and extinction events rather than competitive or environmental advantages.
+```
