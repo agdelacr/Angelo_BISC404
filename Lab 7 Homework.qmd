@@ -1,0 +1,254 @@
+# Diversity Indices
+
+Your goal for this assignment is to find a dataset online that includes species abundances across different plots, sites, or regions. You will conduct diversity analyses on the dataset to compare diversity among these areas.
+
+::: callout-note
+## Tips
+
+Your dataset should include different plots/sites/etc. (at least 3), different species (at least 10), and abundance data (either a column for abundance or where each row represents an individual).
+
+If you are able to find a good dataset you want to use but there is not a column for abundance counts, but each *row* is an *individual* (like in a dataset of mice species, each row is an individual mouse e.g. row 1 is Mickey and row 2 in Minnie, etc.), you can still use that dataset by creating a population count column like this:
+
+``` r
+df_count <- df %>% 
+    group_by(species, time) %>% 
+    summarize(count = n(), .groups = "drop") %>%
+    ungroup()
+```
+
+If your dataset has separate columns for each plot/habitat/region/etc. you will have to use pivot_longer() before you pivot_wider() while creating your community data matrix, like this:
+
+``` r
+pivot_longer(cols = <first site column name: last site column name>, names_to = "Sites", values_to = "Abundance", values_drop_na = TRUE)
+```
+
+If your dataset has an abundance column but also has repeated rows for some species/sites (if values are erroneously repeated, if if your dataset is over time, etc.), you can use the following to collapse your dataset:
+
+``` r
+  df_out <- df_in %>%
+    group_by(<species column>, <site column>) %>%
+    summarize(cumulative_abundance = sum(<abundance column>, .groups = "drop") %>%
+    ungroup()
+```
+:::
+
+### 0) Set-up your environment
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(vegan)
+options(stringsAsFactors = FALSE)
+
+df <- read_excel("~/Desktop/abunbysp_figshare.xlsx")
+```
+
+### 1) Explore your dataset and describe what you see. Note what needs to be cleaned. Plot your data for initial analysis/description of your dataset. This could include histograms of species abundances or maps of the locations of plots. What trends do you see? Describe your dataset and how it was collected.
+
+```{r}
+glimpse(df)
+head(df)
+```
+```{r}
+df_long <- df %>%
+  pivot_longer(cols = -Plot,
+               names_to = "Species",
+               values_to = "Abundance")
+
+n_distinct(df_long$Plot)
+n_distinct(df_long$Species)
+```
+```{r}
+df_long %>%
+  group_by(Species) %>%
+  summarize(Total_Abundance = sum(Abundance)) %>%
+  arrange(desc(Total_Abundance))
+```
+```{r}
+library(ggplot2)
+df_long %>%
+  ggplot(aes(x = Abundance)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Histogram of Species Abundance", x = "Abundance", y = "Frequency")
+```
+```{r}
+df_long %>%
+  group_by(Species) %>%
+  summarize(Total_Abundance = sum(Abundance)) %>%
+  slice_max(order_by = Total_Abundance, n = 10) %>%
+  ggplot(aes(x = reorder(Species, Total_Abundance), y = Total_Abundance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 Most Abundant Species",
+       x = "Species",
+       y = "Total Abundance")
+```
+
+```{r}
+summary(df)
+any(is.na(df))
+```
+```{=plain}
+My dataset contains species abundance data from over 151 forest plots, some of which were  recorded for over 19 different tree species. Each row in the data is representative for a single plot while each column (besides the plot name) corresponds to a tree species with its values representing the number of individuals there were observed in that plot.
+
+Breaking down the data, the initial exploration had revealed a strong right-skew in abundance distribution. Most species typically have low/zero abundances in the majority of plots with an exception being a few species (especially Fagus sylvatica being highly dominant in this case) -> indicative of high species richness but low evenness across the plots. 
+
+Abundance histogram confirmed that the majority of values are concentrated at the low end. Bar plot further showed that the Fagus sylvatica and Buxus sempervirens were the most abundant species overall.
+
+In general, my dataset appears to be clean with no missing values and is likely collected through forest plot sampling (individual treescounted within defined areas to estimate species abundances and community composition).
+```
+### 2) Clean and wrangle your data, describing why you are conducting the cleaning steps you are taking.
+
+*Hint: it will be helpful to have 3 objects: your clean dataset in long format, your clean data in wide format, and your clean dataset set-up as a community data matrix*
+
+```{r}
+df_long_clean <- df_long %>%
+  filter(Abundance > 0)
+```
+
+```{r}
+df_wide_clean <- df_long_clean %>%
+  pivot_wider(names_from = Species, values_from = Abundance, values_fill = 0)
+```
+
+```{=plain}
+Filtered out rows where abundance was zero in order to reduce noise and focus more on species that were actually present in plots. Then, reshaped the data back to wide format in order to create a table where each row is a plot and each column is a species (diversity analysis functions).
+```
+
+```{r}
+comm_matrix <- df_wide_clean %>%
+  select(-Plot) %>%
+  as.data.frame()
+
+rownames(comm_matrix) <- df_wide_clean$Plot
+```
+
+```{=plain}
+Community data matrix formatted with plots as rows and species as columns (containing abundance values) --> diversity index calculations and other community ecology analyses
+```
+
+```{r}
+sum(is.na(df_long_clean))
+sum(is.na(df_wide_clean))
+summary(comm_matrix)
+```
+
+```{=plain}
+A final check was then performed for missing values or any formatting issues in the cleaned datasets --> helps confirm that all transformation steps were successful and that the data is ready for analysis
+```
+### 3) Calculate and compare diversity metrics among at least 3 plots/sites/areas/etc. (*Hint: there were 3 different diversity metrics in lab, with the 3rd having two options for its calculation*). What do you observe? Does this align with what you expect from your plots/data above?
+
+```{r}
+set.seed(404) 
+selected_plots <- sample(rownames(comm_matrix), 3)
+selected_data <- comm_matrix[selected_plots, ]
+selected_data
+```
+
+```{r}
+richness <- rowSums(selected_data > 0)
+richness
+```
+
+```{r}
+shannon <- diversity(selected_data, index = "shannon")
+shannon[selected_plots]
+```
+
+```{r}
+simpson <- diversity(selected_data, index = "simpson")
+
+inverse_simpson <- diversity(selected_data, index = "invsimpson")
+
+simpson[selected_plots]
+inverse_simpson[selected_plots]
+```
+
+```{=plain}
+For this part of the assignment, I calculated three diversity metrics (species richness, Shannon index, and Simpson index) for three forest plots. FSAVs06 and FSDJs02 both presented to having low richness (2 species) and very low diversity scores which were driven by the dominance of a single species, Fagus sylvatica. FSCJs07 then presented to have higher richness (4 species) and much higher Shannon and Simpson values (more even and balanced species distribution).
+
+Results here align well with the patterns observed earlier in the abundance plots and confirms that high total abundance doesn't always mean high diversity.
+```
+### 4) Calculate and compare Euclidean, Bray-Curtis, and Jaccard distances for your data (all species and all plots). Create an NMDS plot with all data for both Bray-Curtis and Jaccard distances for your data. What do you observe?
+
+```{r}
+library(vegan)
+
+dist_euclidean <- dist(comm_matrix, method = "euclidean")
+dist_bray <- vegdist(comm_matrix, method = "bray")
+dist_jaccard <- vegdist(comm_matrix, method = "jaccard", binary = TRUE)
+```
+
+```{r}
+nmds_bray <- metaMDS(comm_matrix, distance = "bray", k = 2, trymax = 100)
+plot(nmds_bray, main = "NMDS (Bray-Curtis Distance)")
+```
+
+```{r}
+nmds_jaccard <- metaMDS(comm_matrix, distance = "jaccard", binary = TRUE, k = 2, trymax = 100)
+plot(nmds_jaccard, main = "NMDS (Jaccard Distance)")
+```
+
+```{r}
+nmds_bray$stress
+nmds_jaccard$stress
+```
+
+```{r}
+install.packages("pheatmap")
+
+library(pheatmap)
+
+bray_matrix <- as.matrix(dist_bray)
+
+pheatmap(bray_matrix,
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         main = "Bray-Curtis Distance Heatmap")
+```
+
+```{=plain}
+For this part of the assignment now, I observed clear variation in the community composition across the forest plots. In my Bray-Curtis and Jaccard distance metrics, they revealed that while many plots shared similar species (especially due to dominant species), there was still considerable variation between others (particularly in species presence/absence). The NMDS plots showed moderate clustering among plots (signs of overlapping communities) with some of them showing clear outliers that were likely driven by rare species/highly uneven distributions. The stress values (Bray-Curtis = 0.236, Jaccard = 0.189) then indicated the ordinations are fairly reliable.
+
+Furthering these observations, I also visualized the Bray-Curtis distance matrix as a heatmap shown above which simply also supported this pattern. Here, large sections of moderately similar plots (yellow/light blue) with pockets of dissimilar plots (red) were scattered throughout. 
+
+Overall, while some forest plots are compositionally similar, others were distinct --> reflective of the differences in microhabitat/succession stage/disturbance history.
+```
+### 5) Calculate Gini-Simpson Index, Simpson's Evenness, and Shannon Index values for your data. What do you observe?
+
+```{r}
+gini_simpson <- diversity(comm_matrix, index = "simpson", MARGIN = 1)
+gini_simpson <- 1 - gini_simpson
+gini_simpson
+```
+
+```{r}
+simpson <- diversity(comm_matrix, index = "simpson")
+
+richness <- rowSums(comm_matrix > 0)
+
+simpson_evenness <- simpson / richness
+simpson_evenness
+```
+
+```{r}
+shannon <- diversity(comm_matrix, index = "shannon")
+shannon
+```
+
+```{=plain}
+For this part of the assignment now, i observed considerable variation in species diversity as well as community structure across the forest plots. In the Gini-Simpson Index, it showed that while some plots were highly diverse others were more dominated by just 1-2 species. As for the Simpson’s Evenness values, I observed them to being generally low which is indicative that even in species-rich plots, a few species tend to dominate. Lastly, for the Shannon Index values, they simplysupported this pattern with some plots showing high diversity and others near zero (especially where a single species was present_.
+
+Again, these results align with earlier findings from bar plots and NMDS visualizations. They confirm that Fagus sylvatica is often dominant, and while species richness is relatively high overall, evenness is pretty low in many plots. 
+
+(Community structure where biodiversity is present, but unevenly distributed across space)
+```
+### 6) What overall hypotheses or conclusions can you draw from your analysis of this dataset? Based on the flowchart from lab, which metric(s) do you think are most applicable for your dataset?
+
+```{=plain}
+From the analysis conducted for this assignment, I can conclude that the forest plots in this dataset exhibited more moderate to high species richness but generally low evenness, with a small number of dominant species (particularly Fagus sylvatica) shaping the structure of many communities. While some plots though did contain a balanced mix of species, others are heavily skewed toward one, resulting in lower diversity scores.
+
+From my Bray-Curtis and Shannon Index analysis, they were especially informative. On one hand, the Bray-Curtis captured differences in species abundance across plots. And on the other, thethe Shannon Index reflected both richness and evenness, boht of which help in identifing more balanced communities.
+
+Overall, the entire analysis suggests that while this forest ecosystem supports many species, its biodiversity is unevenly distributed (likely due to ecological factors; Ex: succession, disturbance, competitive dominance). 
+```
