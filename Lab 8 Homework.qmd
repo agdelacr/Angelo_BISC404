@@ -1,0 +1,246 @@
+# Lab 8 - Exercises
+
+-   Set-up your environment
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(vegan)
+library(ggplot2)
+options(stringsAsFactors = FALSE)
+```
+
+-   Load, describe, and clean the microbe/nectar datasets from lab. Be sure to explain the cleaning steps you are taking and why.
+
+```{r}
+data_path <- "~/Desktop/Lab_8_data/"
+
+microbe <- read.csv(paste0(data_path, "2015_survey_samples_edit_cfu_master.csv"))
+metadata <- read.csv(paste0(data_path, "metadata_2015_survey_samples_edit_cfu_master.csv"))
+
+glimpse(microbe)
+glimpse(metadata)
+
+colnames(microbe)
+colnames(metadata)
+
+microbe_clean <- microbe %>%
+  filter(complete.cases(.))
+
+metadata_clean <- metadata %>%
+  filter(complete.cases(.))
+```
+
+```{=plain}
+To begin this assignment, I went ahead and loaded two datasets: the main microbe dataset (containing 1,157 rows x 41 columns) as well as a metadata file that contains two columns explaining variable meaning. For the microbe dataset, CFU counts, also known as colony-forming units, were included for both the frutophilic (Fcfu) and the basidiomycetous (Bcfu) microbes across flower samples, along with nectar volume, the data of which they were colelcted, and other ecological traits such as whether or not the stigma was closed. 
+
+Upon inspection of this data, I found several columns (such as F_nontarget and X.1 through X.9) that were entirely empty or simply contained only NAs, which were they removed to streamline the dataset better. Next, many of the microbe count columns appears to be formatted as character strings (Ex: "0" instead of numeric 0) which were then converted to proper numer format --> allows for statistical analysis. Missing data entries in key colums were also checked for and filtered out in order to prevent issues during downstream analysis. 
+```
+```{r}
+microbe_clean <- microbe %>%
+  select(-starts_with("X.")) %>%
+  select(-F_nontarget)
+
+cfu_cols <- grep("cfu|CFU|log", names(microbe_clean), value = TRUE)
+microbe_clean[cfu_cols] <- lapply(microbe_clean[cfu_cols], function(x) as.numeric(as.character(x)))
+
+glimpse(microbe_clean)
+summary(microbe_clean)
+```
+
+-   Explore geographical, abiotic, and biotic filtering further. (*Hint: first step will often be to pivot and wrangle the shape of your cleaned dataframe to match the structure of the inputs from these past labs. You may also need to combine datasets.*)
+
+```{r}
+library(tidyr)
+
+microbe_long <- microbe_clean %>%
+  pivot_longer(cols = matches("^(Fcfu|Bcfu)[1-6]$"),
+               names_to = "Microbe_Type",
+               values_to = "Abundance") %>%
+  filter(!is.na(Abundance))
+```
+
+```{r}
+microbe_long <- microbe_long %>%
+  mutate(site_code = gsub("[0-9]", "", Plant_ID))
+
+combined <- left_join(microbe_long, sites, by = c("site_code" = "site_name"))
+
+ggplot(combined, aes(x = site_code, y = Abundance)) +
+  geom_boxplot() +
+  facet_wrap(~Microbe_Type, scales = "free_y") +
+  labs(title = "Microbe Abundance by Site",
+       x = "Site",
+       y = "Abundance")
+
+ggplot(combined, aes(x = Nectar_vol, y = Abundance)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~Microbe_Type, scales = "free_y") +
+  labs(title = "Microbe Abundance vs Nectar Volume",
+       x = "Nectar Volume (µL)",
+       y = "Abundance")
+```
+
+-   Section 1:
+
+    -   Like we did in lab 5, map the data using x, y coordinates. Visualize (i.e. using color, size, fill, etc.) the differences in *average* bacterial and yeast concentrations by site.
+
+    ```{r}
+    colnames(combined)
+
+    site_avg <- combined %>%
+      mutate(group = ifelse(grepl("^F", Microbe_Type), "Yeast", "Bacteria")) %>%
+      group_by(site_code, X.y, Y, group) %>%
+      summarize(mean_abundance = mean(Abundance, na.rm = TRUE), .groups = "drop")
+
+    site_avg_wide <- site_avg %>%
+      pivot_wider(names_from = group, values_from = mean_abundance)
+
+    ggplot(site_avg_wide, aes(x = X.y, y = Y)) +
+      geom_point(aes(size = Bacteria, color = Yeast), alpha = 0.8) +
+      scale_color_gradient(low = "lightblue", high = "darkblue") +
+      scale_size(range = c(2, 10)) +
+      theme_minimal() +
+      labs(title = "Average Bacterial (size) and Yeast (color) Abundance by Site",
+           x = "Longitude", y = "Latitude", color = "Yeast", size = "Bacteria")
+    ```
+
+        -   Assume flowers with the same prefix (SR1, SR2, etc.) come from the same site (e.g. site SR)
+
+```{r}
+combined <- combined %>%
+  mutate(site_prefix = gsub("_.*", "", Flower_ID))
+```
+
+        -   What could these results imply in the context of filtering?
+
+```{=plain}
+What these results imply in the context of filtering is that the the microbial community composition may be shaped by instead multiple types of ecological filtering --> variation in average bacterial and yeast abundance supports idea of geographic filtering (spatial locaiton influences which microbes are present; possibly due to differences in environmental conditions)
+
+In addition, the visualzed patterns of abudnace may also reflect abiotic filters (particular if differences correlates with traits such as nectar volume or temperature at each site) --> Ex: Sites with lower yeast may have nectar conditions less favorable to yeast growth
+
+Then, by grouping the flowers by their shared site prefixes (SR1, SR2, etc), biotic filtering can then be examined to where plant specia/floral traits can select for more specific microbial groups. 
+```
+    -   Reference the section "Real-World Data: Island Biogeography of Coral Reefs" from the newer version of lab 6: [https://charleslehnen.github.io/](https://charleslehnen.github.io/BISC_404_Ecology_and_Biodiversity/Labs/Lab_5/Lab_5.html)[BISC_404_Ecology_and_Biodiversity](https://charleslehnen.github.io/BISC_404_Ecology_and_Biodiversity/Labs/Lab_5/Lab_5.html)[/Labs/Lab_6/Lab_6.html](https://charleslehnen.github.io/BISC_404_Ecology_and_Biodiversity/Labs/Lab_5/Lab_5.html)
+
+        -   Hints:
+
+            -   Combine sites into 2 regions:
+
+                -   `observed_data_clean <- observed_data_clean %>% mutate(region = case_when( site_name %in% c("LH", "SG", "OH", "MW", "SV", "JP") ~ "norcal", site_name %in% c("BS", "SB", "SA", "CH", "BB", "SR") ~ "central" ))`
+
+            -   Be sure when calculating `p` to only count species that are present (\>0) for each site. It may help to create a community data matrix with each site as a different row to use `specnumber()` for that step.
+
+                -   `comm_data_matrix <- observed_data_clean %>% select(Fcfu1, Fcfu2, Fcfu3, Fcfu4, Fcfu5, Fcfu6, Bcfu1, Bcfu2, Bcfu3, Bcfu4, Bcfu5, Bcfu6) %>%summarize(across(everything(), sum, na.rm = TRUE))`
+
+                    `p <- specnumber(comm_data_matrix)`
+
+            -   The values from "Date_collected" column should become the date range column titles needed for `regular_sampling_scheme()` function input.
+
+                -   Here is guidance on pivoting your dataframe:
+
+                    -   `observed_data_wide <- observed_data_clean %>%`
+
+                        `select(region, Date_collected, Fcfu1, Fcfu2, Fcfu3, Fcfu4, Fcfu5, Fcfu6, Bcfu1, Bcfu2, Bcfu3, Bcfu4, Bcfu5, Bcfu6) %>%`
+
+                        `# Pivot to long format and filter out zero counts pivot_longer( cols = c(Fcfu1, Fcfu2, Fcfu3, Fcfu4, Fcfu5, Fcfu6, Bcfu1, Bcfu2, Bcfu3, Bcfu4, Bcfu5, Bcfu6), names_to = "Species", values_to = "Count" ) %>% filter(Count != 0) %>%`
+
+                        `group_by(region, Species, Date_collected) %>% summarize(Count = sum(Count, na.rm = TRUE), .groups = 'drop') %>%`
+
+                        `# Convert to date format so we can sort later mutate(Date_collected = mdy(Date_collected)) %>%`
+
+                        `pivot_wider( names_from = Date_collected, values_from = Count, values_fill = 0 ) %>%`
+
+                        `# Convert counts to presence/absence (1 or 0) mutate(across(where(is.numeric), ~ case_when( . > 0 ~ 1, . == 0 ~ 0, TRUE ~ NA_real_ ))) %>%`
+
+                        `# Arrange columns so date columns are in chronological order select(region, Species, sort(tidyselect::peek_vars()))`\
+
+```{r}
+library(stringr)
+library(dplyr)
+library(vegan)
+
+yeast_cols <- names(combined)[str_detect(names(combined), "^Fcfu")]
+bacteria_cols <- names(combined)[str_detect(names(combined), "^Bcfu")]
+all_microbe_cols <- c(yeast_cols, bacteria_cols)
+
+combined[all_microbe_cols] <- lapply(combined[all_microbe_cols], function(x) as.numeric(as.character(x)))
+
+combined_filtered <- combined %>%
+  filter(!is.na(site_code) & site_code != "")
+
+total_matrix <- combined_filtered %>%
+  group_by(site_code) %>%
+  summarize(across(all_of(all_microbe_cols), \(x) sum(x, na.rm = TRUE))) %>%
+  column_to_rownames("site_code") %>%
+  mutate(across(everything(), ~ ifelse(. > 0, 1, 0)))
+
+yeast_matrix <- total_matrix[, yeast_cols]
+
+bacteria_matrix <- total_matrix[, bacteria_cols]
+
+total_richness <- specnumber(total_matrix)
+yeast_richness <- specnumber(yeast_matrix)
+bacteria_richness <- specnumber(bacteria_matrix)
+
+species_richness_summary <- data.frame(
+  Site = rownames(total_matrix),
+  Total_Species_Richness = total_richness,
+  Yeast_Species_Richness = yeast_richness,
+  Bacteria_Species_Richness = bacteria_richness
+)
+
+species_richness_summary <- species_richness_summary %>%
+  mutate(region = case_when(
+    Site %in% c("LH", "SG", "OH", "MW", "SV", "JP") ~ "norcal",
+    Site %in% c("BS", "SB", "SA", "CH", "BB", "SR") ~ "central"
+  ))
+
+print(species_richness_summary)
+```
+
+        -   What could these results imply in the context of filtering? (Hint: do sites have similar or different S\* values and what does this imply about filtering?)\
+        
+```{=plain}
+From the data, we can observe that Yeast and Bacterial species richness are highly consistent across alll sites (13 and 14 species, respectively) even regardless of their regions. However though, Total Species Richness does seem to vary slightly (1-2 speceis per site) which then goes on to suggest that not all species types (yeast + bacteria) are present together in every site. The consistency in microbial group richness (yeast and bacteria seperately) across regions does suggest mininmal regional filtering in which both groups are able to disperse and persist across sites similarly. However though, the slight variation in total richness could also imply localized filtering (possible that's driven by biotic or even abiotic factors affecting whether or not both yeast and bacteria are detected together). 
+
+Altogether, the patterns indicates that biotic/abiotic filters at the flower level may play a stronger rile in shaping final community composition than large-scale geographic filters --> all species can get to eeach site but whether they stay simply may depends on local conditions. 
+```
+   
+    Section 2:
+
+    -   Reference zero-growth isoclines from the newer version of lab 5: <https://charleslehnen.github.io/BISC_404_Ecology_and_Biodiversity/Labs/Lab_5/Lab_5.html>
+
+```{r}
+library(ggplot2)
+
+ggplot(combined, aes(x = log.FCFU.1., y = log.BCFU.1.)) +
+  geom_point(alpha = 0.5, color = "darkblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +
+  labs(
+    title = "Zero-Growth Isocline Plot: Bacteria vs. Yeast",
+    x = "Yeast Abundance (log CFU)",
+    y = "Bacteria Abundance (log CFU)"
+  ) +
+  theme_minimal()
+```
+
+        -   Repeat a zero-growth isocline analysis for our microbe/nectar dataset for bacteria vs. yeast.
+
+        -   What could these results imply in the context of filtering?\
+```{=plain}
+From the zero-groth isocline plot, the positive association suggests that yeast and bacteria may not be strongly competing in such a way that suppresses each other's growth, but instead, they might simply be coexisting or even benefitting from shared environmental conditions. In the context of ecological filtering, what this implies is that biotic filtering through direct competition is likely weak and that otehr filters such as abiotic conditions (examples being enctar volume and sugar concentration) or even dispersal patterns may simply be more influential in shaping microbe communities within flowers. 
+```
+
+-   Write a brief overall conclusion what your results imply. Note the strengths and weaknesses of using these analyses over using species abundance or richness.
+
+```{=plain}
+Overall Conclusion: The results altogether suggest that microbial communities in floral nectar are shaped more by abiotic and spatial filtering rather than by strong biotic interactions. Per say, the microbial richness in the data presented was relatively consistent across sites and then the zero-growth isocline plot simply would indicate a weak positive association between yeast and bacterial abundances that then points to potential coexistence rather than competition.
+
+Compared to simply using species abundance or richness, the multivariate and regression-based analyses provide a more nuanced view of community structure and interactions --> captures differences in composition, detects subtle patterns, and considers relative abundances.
+```
+
+------------------------------------------------------------------------
+
+# References
