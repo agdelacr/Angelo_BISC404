@@ -1,0 +1,32 @@
+---
+title: "BISC404L Dataset Links"
+format: html
+editor: visual
+---
+
+# Dataset Links for BISC404L Assignments
+
+## Lab 5 Dataset
+
+Title: The effect of inter- and intraspecific competition on individual and population niche widths -- a four-decade study on two interacting salmonids\
+Authors: Prati, Henriksen, Smalås, Knudsen, Klemetsen, Sánchez-Hernández, Amundsen (2021)\
+DOI: <https://doi.org/10.5061/dryad.95x69p8jx>\
+Dataset Link: [Dryad Repository](https://datadryad.org/stash/dataset/doi:10.5061/dryad.95x69p8jx)
+
+------------------------------------------------------------------------
+
+## Lab 7 Dataset
+
+Title: Tree species abundance per plot in long-established and secondary broad-leaf forests\
+Authors: L. Perrin et al.\
+DOI: [10.6084/m9.figshare.12646517](https://doi.org/10.6084/m9.figshare.12646517)\
+Dataset Link: [Figshare Repository](https://figshare.com/articles/dataset/Tree_species_abundance_per_plot_in_long-established_and_secondary_broad-leaf_forests/12646517)
+
+------------------------------------------------------------------------
+
+## Lab 9 (Extra Credit) Dataset
+
+Title: Interspecific competition affects the expression of personality-traits in native red squirrels\
+Authors: Wauters, L.A., Mazzamuto, M.V., Santicchia, F., Van Dongen, S., Preatoni, D.G., Martinoli, A.\
+DOI: [10.5281/zenodo.1451461](https://doi.org/10.5281/zenodo.1451461)\
+Dataset Link: [Zenodo Repository](https://zenodo.org/record/1451461)
