@@ -5,15 +5,15 @@ For this assignment, you will search online to find and analyze a dataset other 
 ## Exercise 0: Set-up and load data
 
 ```{r setup, include=FALSE}
-setwd("~/Desktop")
-install.packages("readxl")
+#setwd("~/Desktop")
+#install.packages("readxl")
 library(readxl)
 data <- read_excel("Lab 5 Dataset.xlsx")
 ```
 
 ## 1: Describe your dataset and how it was collected
 
-```
+```         
 The dataset, 'The Effect of Inter- and Intraspecific Competition on Individual and Population Niche Widths – A Four-Decade Study on Two Interacting Salmonids' examines the effects of inter- and intraspecific competition on the niche widths of two interacting salmonid species over four decades. My data was collected from freshwater lakes in Norway where researchers monitored population dynamics, diet composition, as well as habitat use of Arctic charr (Salvelinus alpinus) and brown trout (Salmo trutta). The sampling involved gillnet fishing, stomach content analysis to assess dietary overlap, and stable isotope analysis to track long-term shifts in resource use. Then, environmental factors, such as water temperature and prey availability were also recorded to evaluate how ecological conditions influenced competition, all of which providing insights into how competitive interactions shape species distributions and ecological niches over time.
 ```
 
@@ -27,9 +27,10 @@ colSums(is.na(data))
 table(data$Species)
 ```
 
-```
+```         
 The dataset contains 2046 observations and 49 columns with no apparent missing values that I noticed. As mentioned, my data focuses on two salmonid species, the Arctic charr (Salvelinus alpinus) as well as the brown trout (Salmo trutta), with 1424 charr and 622 trout recorded. It includes fish length, diet composition (percentage of different prey items like Bosmina, Daphnia, Gammarus), and environmental factors, with many columns representing dietary percentages that shows variation in resource use. The dataset suggests that Arctic charr are more numerous than brown trout in the study area and provides detailed insights into how each species utilizes available food resources which is essential for analyzing interspecific competition.
 ```
+
 ## 3: Clean your data using dplyr
 
 ```{r}
@@ -46,6 +47,7 @@ data <- data %>% select(Species, Length, `FG%`,
                         `Coleoptera%`, `Watermite%`, `Fishunid%`, `cop`, `amp`, 
                         `moll`, `pleuston`, `chirp`, `chirl`, `trich`, `obent`, `fish`)
 ```
+
 ```{r}
 colnames(data)
 dim(data)
@@ -73,7 +75,7 @@ ggplot(data, aes(x = Species, y = `Daphnia%`, fill = Species)) +
   theme_minimal()
 ```
 
-```
+```         
 From the data visualizations, they reveal clear trends in fish size and diet composition between Arctic charr and brown trout. In the histogram, it indicated that charr are more abundant across all size classes, but both species exhibit similar length distributions which suggests potential competition across different growth stages. Then, the boxplots for Bosmina% and Daphnia% consumption show that charr rely heavily on these prey items, while trout consume almost none. This suggests a strong dietary separation that potentially reduces direct competition for food. However, the high variability in charr’s diet (with many individuals consuming up to 100% of certain prey) then suggests that they may be opportunistic feeders that possibly outcompete trout in shared environments. In summary, all these trends indicate that interspecific competition may be limited by resource partitioning where trout likely depend on alternative food sources.
 ```
 
@@ -187,7 +189,8 @@ ggplot(out_df, aes(x = time)) +
 ```
 
 ## 8: Interpret your results, what do you observe?
-```
+
+```         
 The zero-growth isocline analysis supports the earlier findings that Arctic charr outcompete brown trout. The isoclines shows that trout's population declines in most scenarios while charr reach a stable equilibrium, thus reinforcing, yet again, the idea of competitive exclusion. The lack of a clear intersection then suggests that coexistence is unlikely under pure competition which also aligns with the Lotka-Volterra model results, further confirming that charr have a stronger competitive advantage (possibly due to better resource utilization or higher population resilience). Again though, in real ecosystems, additional factors like environmental variability or habitat partitioning could alter this outcome, but under the given conditions, the analysis strongly supports charr dominance over trout.
 ```
 
@@ -214,14 +217,16 @@ ggplot() +
 ```
 
 ### What do you observe? Does this agree with your earlier analysis?
-```
+
+```         
 The zero-growth isocline analysis supports the earlier findings that Arctic charr outcompete brown trout. The isoclines shows that trout's population declines in most scenarios while charr reach a stable equilibrium, thus reinforcing, yet again, the idea of competitive exclusion. The lack of a clear intersection then suggests that coexistence is unlikely under pure competition which also aligns with the Lotka-Volterra model results, further confirming that charr have a stronger competitive advantage (possibly due to better resource utilization or higher population resilience). Again though, in real ecosystems, additional factors like environmental variability or habitat partitioning could alter this outcome, but under the given conditions, the analysis strongly supports charr dominance over trout.
 ```
 
 ------------------------------------------------------------------------
 
 # References
-```
+
+```         
 Prati, S., Henriksen, E., Smalås, A., Knudsen, R., Klemetsen, A., Sánchez-Hernández, J., & Amundsen, P.-A. (2021).  
 The effect of inter- and intraspecific competition on individual and population niche widths – a four-decade study on two interacting salmonids.  
 Dryad Digital Repository. https://doi.org/10.5061/dryad.95x69p8jx  

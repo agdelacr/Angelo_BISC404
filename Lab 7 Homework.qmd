@@ -33,6 +33,7 @@ If your dataset has an abundance column but also has repeated rows for some spec
 :::
 
 ### 0) Set-up your environment
+
 ```{r setup, include=FALSE}
 library(readxl)
 library(dplyr)
@@ -40,7 +41,7 @@ library(tidyr)
 library(vegan)
 options(stringsAsFactors = FALSE)
 
-df <- read_excel("~/Desktop/abunbysp_figshare.xlsx")
+df <- read_excel("abunbysp_figshare.xlsx")
 ```
 
 ### 1) Explore your dataset and describe what you see. Note what needs to be cleaned. Plot your data for initial analysis/description of your dataset. This could include histograms of species abundances or maps of the locations of plots. What trends do you see? Describe your dataset and how it was collected.
@@ -49,6 +50,7 @@ df <- read_excel("~/Desktop/abunbysp_figshare.xlsx")
 glimpse(df)
 head(df)
 ```
+
 ```{r}
 df_long <- df %>%
   pivot_longer(cols = -Plot,
@@ -58,12 +60,14 @@ df_long <- df %>%
 n_distinct(df_long$Plot)
 n_distinct(df_long$Species)
 ```
+
 ```{r}
 df_long %>%
   group_by(Species) %>%
   summarize(Total_Abundance = sum(Abundance)) %>%
   arrange(desc(Total_Abundance))
 ```
+
 ```{r}
 library(ggplot2)
 df_long %>%
@@ -71,6 +75,7 @@ df_long %>%
   geom_histogram(binwidth = 1) +
   labs(title = "Histogram of Species Abundance", x = "Abundance", y = "Frequency")
 ```
+
 ```{r}
 df_long %>%
   group_by(Species) %>%
@@ -88,6 +93,7 @@ df_long %>%
 summary(df)
 any(is.na(df))
 ```
+
 ```{=plain}
 My dataset contains species abundance data from over 151 forest plots, some of which were  recorded for over 19 different tree species. Each row in the data is representative for a single plot while each column (besides the plot name) corresponds to a tree species with its values representing the number of individuals there were observed in that plot.
 
@@ -114,7 +120,6 @@ df_wide_clean <- df_long_clean %>%
 ```{=plain}
 Filtered out rows where abundance was zero in order to reduce noise and focus more on species that were actually present in plots. Then, reshaped the data back to wide format in order to create a table where each row is a plot and each column is a species (diversity analysis functions).
 ```
-
 ```{r}
 comm_matrix <- df_wide_clean %>%
   select(-Plot) %>%
@@ -126,7 +131,6 @@ rownames(comm_matrix) <- df_wide_clean$Plot
 ```{=plain}
 Community data matrix formatted with plots as rows and species as columns (containing abundance values) --> diversity index calculations and other community ecology analyses
 ```
-
 ```{r}
 sum(is.na(df_long_clean))
 sum(is.na(df_wide_clean))

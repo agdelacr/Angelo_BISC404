@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ```{r}
 library(readxl)
-file_path <- "~/Desktop/ecog12731-sup-0001-appendixs1.xlsx"
+file_path <- "./ecog12731-sup-0001-appendixs1.xlsx"
 butterfly_data <- read_excel(path = file_path, sheet = "butterfly_abundance_data")
 head(butterfly_data)
 ```
@@ -59,6 +59,9 @@ butterfly_clean <- butterfly_data %>%
   filter(if_any(everything(), ~ !is.na(.))) %>%
   distinct() %>%
   rename_with(~ str_replace_all(tolower(.), " ", "_"))
+
+head(butterfly_clean)
+
 ```
 
 ### Manipulate data using `dplyr` and create *three* different scatter plots using `ggplot2` to explore if different aspects of the Island Biogeography Theory seem to be supported by this dataset.
@@ -79,7 +82,7 @@ According to Island Biogeography Theory, species richness, island area, and isla
 ### *Hint: adding `geom_smooth(method = "lm", se = FALSE)` to your scatterplots will help you quickly explore trends for each of these. Remember that in the real-world, this should just be a starting point to selecting a model.*
 
 ```{r}
-ggplot(butterfly_richness, aes(x = area_ha, y = richness)) +
+ggplot(butterfly_clean, aes(x = area_ha, y = richness)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Species Richness vs Island Area",

@@ -3,28 +3,24 @@ PART 1 - Find, explore, describe, and clean a dataset that you have not used pre
 
 Dataset contains behavioral and biological observations of red squirrels living in areas with and without invasive grey squirrels.
 ```
-
 ```{=plain}
 PART 2 - Repeat any of the *multi-part* analyses from any of the previous homework assignments or lab handouts on your dataset: The multi-part analysis I repeated for this extra credit assignment was from Lab 5 – Interspecies Interactions: Competition. I chose this one because it was genuinely one of my favorite labs, the whole idea of combining real ecological data with mathematical modeling was really rewarding to see the dynamics play out visually through simulations and isocline plots
 ```
-
 ```{r}
 library(readr)     
 library(dplyr)     
 library(ggplot2)   
 
-setwd("~/Desktop")
-
 squirrels <- read_csv2("squirrels.csv")
 
 head(squirrels)
 ```
+
 ```{=plain}
 1. Describing the Dataset + How it Was Collected: This particular dataset explore the effects of interspecific competion between the native red squirrles (Sciurus vulgaris) as well as the invasive grey squirrels (Sciurus carolinensis) in regards to behavioral traits in red squirrels. My data seems to been collected fmor various areas and even years, including up to over 296 observations with individual ID, sex, body mass (BM), area type, as well as a wide range of personality-related behavioral scores such as shyness, exploration, activity, and sociabilty. Additional variables then include things such as reproductive success, survival, and age. This all was likely gathered through field observations and standardized behavioral assay that were all designed in order to assess just how red squirrel behavior tends to vary in the presence/absence of grey squirrel competition. 
 
 AKA: How interspecific interactions influence behavioral expression + population dynamics
 ```
-
 ```{r}
 colnames(squirrels)
 
@@ -50,10 +46,10 @@ squirrels %>%
   group_by(AREA_TYPE) %>%
   summarise(across(c(SHYNESS4, EXPLORATION4, ACTIVITY4.oft, SOCIABILITY3), mean, na.rm = TRUE))
 ```
+
 ```{=plain}
 2. Exploring the Dataset: Upon exploring the dataset, we can see that red squirrels were observed in two habitat types: RED areas in which they would live alone and then RED-GREY areas where they would coexist with the invasive grey squirrels with roughly equal numbers of observations across both habitats. Then, preliminary inspection of the behavioral traits (such as shyness, exploration, sociability) then suggests variation between the two types --> Example: Red squirrels in RED-GREY would appear to be slightly more shy and more sociable on average than those only in RED areas, potentially pointing to behavioral adjustments by red squirrels in response to interspecific competition. 
 ```
-
 ```{r}
 library(dplyr)
 
@@ -66,10 +62,10 @@ squirrels <- squirrels %>%
 str(squirrels[behavior_cols])
 summary(squirrels[behavior_cols])
 ```
+
 ```{=plain}
 3. Cleaning the Data (Using Dplyr): For this step, in order to preprate my data for analysis, I then used the dplyr in order to clean the behavioral trait columns. These variables were initially misread due to formatting issues in which the value were interpreted as text rather than numbers. As such, I ran the mutate code which would replace teh commas with periods in order to match decimal formatting then converted such columns into numeric. Then after cleaning, as a final check, I confirmed that the variables were properly formatted and returned meaningful summary statistics.
 ```
-
 ```{r}
 library(ggplot2)
 
@@ -91,10 +87,10 @@ ggplot(squirrels, aes(x = AREA_TYPE, y = SOCIABILITY3, fill = AREA_TYPE)) +
        x = "Habitat Type", y = "Sociability Score") +
   theme_minimal()
 ```
+
 ```{=plain}
 3. Plotting the Dataset: Upon plotting, the initial visualization seemingly reveled subtle yet meaningful behavioral differences in red squirrels depending on whether they coexisted with grey squirrels. For shyness scores, they appeared to be slightly higher and much more consistent in RED-GREY areas that would suggest that red squirrels may become more cautious when in competition. For exploration, it appeared to be fairly simialr across the habitat types with simple minor variations towards more in the RED-GREY areas. However, amongst the three, sociability definetely displyed signficantly higher and more variable scores which may be indicative of behavioral adaptation in which red squirrels tend to increase social tendencies in response to the presence of competitors (potential as a coping/resource-sharing strat)
 ```
-
 ```{r}
 library(deSolve)
 
@@ -111,7 +107,6 @@ lotka_volterra_competition <- function(t, state, parms) {
 ```{=plain}
 4. Defining the Lotka-Voltera Interspecific Competition Model Function: In this part of the assignment, in order to model the population dynamics between red squirrels and grey squirrels, I've now defined the Lotka-Volterra interspecific competition function in R which would then allow me to simulate how each species' growth is influencednot only by its own population size but also by the presence of other species. By then estimating parameters from the dataset and then applying them to this model, potential outcomes of competition over time can be explored. 
 ```
-
 ```{r}
 times <- seq(0, 100, by = 1)
 
@@ -140,7 +135,6 @@ a21 <- avg_mass$avg_BM[avg_mass$AREA_TYPE == "RED"] / avg_mass$avg_BM[avg_mass$A
 ```{=plain}
 5. Extracting Argument Values as Inputs: Now, to prepare for modeling species interactions using the Lotka-Volterra framework, I now extracted key inputs directly from the dataset. I then estimated initial population sized based on the number of observations in each habitat type and then used such behavioral traits as proxies for intrinsic growth as well as competition coefficients, thus allowing me to ground the model in observed patterns from the dataset while approximating how red squirrels just might respond to both intra- and interspecific pressures (especially in the presence of grey squirrels).
 ```
-
 ```{r}
 library(deSolve)
 library(ggplot2)
@@ -173,12 +167,12 @@ ggplot(out_df, aes(x = time)) +
   scale_color_manual(name = "Species", values = c("Red Squirrels" = "firebrick", "Grey Squirrels" = "gray40")) +
   theme_minimal()
 ```
+
 ```{=plain}
 6. Results Interpretation: Here, the results of the model suggests that red squirrels are being competitively excluded by grey squirrels over time. Although, yes, both populations start at high levels, the squirrel population appears to decline rapidly, while the grey squirrel population on the other hand appears to stabilize and continues to even grow. What this dynamic indicates then is that grey squirrels have a stronger competitive effect that can be attributed to greater adaptability or mere access to resources 
 
 Aligns with ecological observations of red squirrel declince in regions where grey squirrels have been introduced --> interspecific competition's role in shaping population outcomes
 ```
-
 ```{r}
 zgi_data <- data.frame(
   N1 = seq(0, max(N01, N02) * 1.5, length.out = 100)
@@ -200,24 +194,21 @@ ggplot(zgi_data, aes(x = N1)) +
                                 "Grey Squirrel Isocline" = "gray40")) +
   theme_minimal()
 ```
+
 ```{=plain}
 7. Results Interpretation P2: For this zero-growth isocline plot, it reveals that the grey squirrel isocline lies consistently above the red squirrel isocline, indicating that grey squirrels can maintain their population even in the presence of more red squirrels than the reverse which then gives them that competitive edge. The lines being perfectly parallel and not intersecting at all within a range that favors stable coexistence then supports the outcome from teh Lotka-Volterra simulation: Competitive Exclusion of Red Squirrels
 
 Concept: Grey squirrels have a stronger competitive effect and are likely to dominate in shared habitats
 ```
-
 ```{=plain}
 PART 3 - Write a brief conclusion about your findings: Through analysis of behavioral data as well as Lotka-Volterra modeling, the findings suggest that red squirrels are at a competetitve disadvantage when coexisting with grey squirrels. Behavioral trait results such as increased sociability in mixed habitats did hint toward adaptive responses not until the simulation results then showed that their populations would decline over time while grey squirrels on the other hand would continue to thrive. The zero-growth isocline analysis then simply reinforced this outcome by then showing limited potential for stable coexistence. 
 ```
-
 ```{=plain}
 PART 4 - As you have worked with real-world datasets throughout the semester, write briefly about what you have learned first-hand about what makes a dataset easy vs. hard to work with. How would you integrate these lessons into the datasets you create in the future?: What I have learned first-hand about what makes a dataset easy vs hard to work with is that clarity and consistency truly makes all the difference. For example, when the data is clean, the columns are labeled clearly, the formatting is consitent, and everything just flows a lot better. However, when there are, for example, missing values, confusing variable names, or even simply strange formatting, it really slows things down, adds extra work, and makes the assignment all the more tedious. Moving foward though, I'll try to keep any datasets I create as organized and easy to understand as possible, you know, for boht myself and anyone who might use them
 ```
-
 ```{=plain}
 PART 5 - Look back at your first 3 assignments, comparing to your current assignment. Think back to the time it took, how hard it was, how much you understood what you were doing, how much you had to rely on outside sources, the quality and readability of the final product, etc. Also think about how long it took you to find datasets for other assignments previously. What progress can you see that you have made this semester?: Looking back at my first three assignments especially in comparison to this one, I can definitely see how much progress I have made. At the beginning of the semester, I remember feeling so unsure about what I was doing. I had to constantly bother my fellow peers and simply spend a lot of time just trying to understand the basics. It honestly took me forever to figure things out, and when I sorted things out, I wasn't alwyas confident in my work so much so I've thought about dropping the class for that. This time around, after having gone through many weeks, I felt way more comfortable navigating R, cleaning the data, and running the analysis myself. I also noticed that my final product looks a lot cleaner and just more readable than before. Yes, I do still run into challenges, but what it different that before is that now I understand what I'm doing and why, and that's truly been a huge shift. 
 ```
-
 ```{=plain}
 FINAL MESSAGE: Thank you for all the time, effort, and thought you put into this class. I really appreciated your guidance and the way you made a challenging subject feel approachable. Your support throughout the semester meant a lot. Wishing you all the best and good luck with everything ahead ! <3
 ```

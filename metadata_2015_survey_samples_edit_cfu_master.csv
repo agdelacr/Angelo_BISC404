@@ -1,0 +1,32 @@
+﻿header,description
+number,unique plant number (unique across all sites) 
+Plant_ID,plant ID number (site name + number of plant at that site) 
+Flower_ID,unique flower ID (unique across all sites) 
+Date_collected,date nectar was collected
+Date_plated,"date nectar was plated (might be the next day as nectar was stored on ice and refridgerated after field collection, but before plating) "
+Replicate,repliate number in 8-count strip tubes 
+Nectar_cm,height (can calculate volume) of nectar in cm
+Nectar_mm,height (can calculate volume) of nectar in mm
+Nectar_vol,calculated volume of nectar
+Stigma_closed,whether stigma was closed (signifying flower was pollinated) and time of collection  
+Fcfu1,Number of fungal CFUs of morphology #1
+Fcfu2,Number of fungal CFUs of morphology #2
+Fcfu3,Number of fungal CFUs of morphology #3
+Fcfu4,Number of fungal CFUs of morphology #4
+Fcfu5,Number of fungal CFUs of morphology #5
+Fcfu6,Number of fungal CFUs of morphology #6
+F_nontarget,Number of non-target on plates
+Fcfu_avg,Average number of CFUs in total 
+FCFU_total,Total number of fungal CFUs
+FCFU_ul,Total number of fungal CFUs per uL of nectar
+log(FCFU+1),Log-transformed total fungal CFUs per uL of nectar
+Bcfu1,Number of bacterial CFUs of morphology #1
+Bcfu2,Number of bacterial CFUs of morphology #2
+Bcfu3,Number of bacterial CFUs of morphology #3
+Bcfu4,Number of bacterial CFUs of morphology #4
+Bcfu5,Number of bacterial CFUs of morphology #5
+Bcfu6,Number of bacterial CFUs of morphology #6
+Bcfu_avg,Average number of CFUs in total 
+BCFU_total,Total number of bacterial CFUs
+BCFUul,Total number of bacterial CFUs per uL of nectar
+log(BCFU+1),Log-transformed total bacterial CFUs per uL of nectar
